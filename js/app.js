@@ -125,7 +125,8 @@ function fmtTime(v, short) {
 }
 
 const initialOf = (name) => PEOPLE.find((p) => p.name === name)?.initial || (name || '?').slice(0, 1).toUpperCase();
-const byBubble = (name) => (name ? `<span class="by" title="${esc(name)}">${esc(initialOf(name))}</span>` : '');
+const byBubble = (name) => (name
+  ? `<span class="by p${Math.max(0, PEOPLE.findIndex((p) => p.name === name))}" title="Cadastrada por ${esc(name)}">${esc(initialOf(name))}</span>` : '');
 
 function toast(msg) {
   toastEl.textContent = msg;
@@ -280,7 +281,7 @@ function renderRecipe(r) {
         ${inBest ? `<a href="#/b/${inBest.id}">${svg('medal')} ${inBest.rank}º nos melhores</a>` : `<a href="#/melhores/novo/${r.id}">✚ Melhores</a>`}
         <button data-act="del-recipe" data-id="${r.id}">Apagar</button>
       </div>
-      <p class="by-line">${r.by ? `por ${esc(r.by)} · ` : ''}${fmtDate(r.createdAt)}</p>
+      <p class="by-line">${r.by ? `${byBubble(r.by)} cadastrada por ${esc(r.by)} · ` : ''}${fmtDate(r.createdAt)}</p>
     </section>`;
 }
 

@@ -101,6 +101,7 @@ svg.ic { width: 26px; height: 26px; stroke: var(--brown); fill: none; stroke-wid
 .star.on { color: var(--caramel); }
 .star.big { font-size: 30px; }
 .by { display: inline-grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: var(--cream); color: var(--brown); font: 600 11px var(--display); flex: none; }
+.by.p1 { background: var(--caramel); color: var(--white); }
 .by.big { width: 40px; height: 40px; font-size: 18px; }
 .grp { font: 600 12px var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--brown); display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .grp svg.ic { width: 18px; height: 18px; }
@@ -182,7 +183,7 @@ textarea.in { resize: vertical; line-height: 1.4; }
 .vact a, .vact button { display: inline-flex; align-items: center; gap: 4px; color: var(--brown); font: inherit; padding: 4px 0; }
 .vact svg.ic { width: 17px; height: 17px; }
 .vact [data-act="del-recipe"] { color: var(--danger); margin-left: auto; }
-.by-line { font-size: 12.5px; color: var(--muted); }
+.by-line { font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
 
 /* melhores cafés */
 .best-list { list-style: none; margin: 0; padding: 0; display: grid; }
