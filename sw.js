@@ -1,5 +1,6 @@
-// Funciona sem internet: guarda o app no aparelho e atualiza em segundo plano.
-const CACHE = 'papo-kafe-receitas-v5';
+// Funciona sem internet: com rede, sempre busca a versão mais nova do app;
+// sem rede, usa a cópia guardada no aparelho.
+const CACHE = 'papo-kafe-receitas-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -17,7 +18,7 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -35,13 +36,24 @@ self.addEventListener('fetch', (e) => {
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (url.origin !== location.origin && !isFont) return;
 
+  if (isFont) {
+    // fontes não mudam: usa a cópia guardada
+    e.respondWith(caches.open(CACHE).then(async (cache) => {
+      const cached = await cache.match(req);
+      return cached || fetch(req).then((res) => { cache.put(req, res.clone()); return res; });
+    }));
+    return;
+  }
+
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(req, { ignoreSearch: url.origin === location.origin });
-      const network = fetch(req)
-        .then((res) => { if (res.ok || res.type === 'opaque') cache.put(req, res.clone()); return res; })
-        .catch(() => cached);
-      return cached || network;
+      try {
+        const res = await fetch(req, { cache: 'no-cache' });
+        if (res.ok) cache.put(req, res.clone());
+        return res;
+      } catch {
+        return (await cache.match(req, { ignoreSearch: true })) || Response.error();
+      }
     }),
   );
 });
