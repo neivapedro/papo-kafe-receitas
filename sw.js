@@ -1,5 +1,5 @@
 // Funciona sem internet: guarda o app no aparelho e atualiza em segundo plano.
-const CACHE = 'papo-kafe-receitas-v3';
+const CACHE = 'papo-kafe-receitas-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,7 @@ const ASSETS = [
   './js/app.js',
   './js/store.js',
   './js/config.js',
+  './js/vendor/supabase.js',
   './manifest.webmanifest',
   './img/logo.png',
   './img/grao.png',
@@ -32,8 +33,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
-  const isLib = url.hostname === 'cdn.jsdelivr.net';
-  if (url.origin !== location.origin && !isFont && !isLib) return;
+  if (url.origin !== location.origin && !isFont) return;
 
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {

@@ -36,8 +36,17 @@ export const cloudEnabled = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 async function loadClient() {
   if (client || !cloudEnabled) return client;
-  const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-  client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  // Biblioteca do Supabase guardada no próprio app (js/vendor), para abrir sem depender de CDN.
+  if (!window.supabase) {
+    await new Promise((resolve, reject) => {
+      const tag = document.createElement('script');
+      tag.src = 'js/vendor/supabase.js';
+      tag.onload = resolve;
+      tag.onerror = reject;
+      document.head.append(tag);
+    });
+  }
+  client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: { persistSession: true, autoRefreshToken: true },
   });
   return client;
@@ -119,7 +128,8 @@ export const store = {
   async signIn(email, password) {
     await loadClient();
     const { error } = await client.auth.signInWithPassword({ email, password });
-    return error ? error.message : null;
+    if (!error) return null;
+    return !navigator.onLine || /fetch|network/i.test(`${error.name} ${error.message}`) ? 'rede' : 'senha';
   },
 
   async signOut() {

@@ -743,7 +743,13 @@ app.addEventListener('submit', async (e) => {
   btn.disabled = true; btn.textContent = 'Entrando…';
   const msg = await store.signIn(form.email.value.trim(), form.password.value);
   btn.disabled = false; btn.textContent = 'Entrar';
-  if (msg) { err.textContent = 'E-mail ou senha não conferem. Confira e tente de novo.'; err.hidden = false; return; }
+  if (msg) {
+    err.textContent = msg === 'rede'
+      ? 'Sem conexão com a internet. Tente de novo quando estiver online.'
+      : 'E-mail ou senha não conferem. Confira e tente de novo.';
+    err.hidden = false;
+    return;
+  }
   mode = await store.init();
   render();
 });
