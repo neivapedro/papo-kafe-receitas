@@ -1,5 +1,5 @@
 // Funciona sem internet: guarda o app no aparelho e atualiza em segundo plano.
-const CACHE = 'papo-kafe-receitas-v4';
+const CACHE = 'papo-kafe-receitas-v5';
 const ASSETS = [
   './',
   './index.html',

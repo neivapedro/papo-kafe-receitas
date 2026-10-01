@@ -11,6 +11,7 @@ let draftKey = null;   // rota dona do rascunho
 let dirty = false;
 let bestDraft = null;  // item dos melhores sendo preenchido
 let bestKey = null;
+let bestFilter = '';   // método escolhido no filtro dos melhores ('' = todos)
 
 /* ---------- métodos e receitas de referência ---------- */
 
@@ -430,33 +431,55 @@ function renderFavs() {
 
 /* ---------- melhores cafés ---------- */
 
+// Métodos para os quais o café é indicado. Itens antigos, sem a lista, herdam o método da receita.
+function bestMethods(b) {
+  if (Array.isArray(b.methods)) return b.methods;
+  const r = b.recipeId ? store.get(b.recipeId) : null;
+  return r ? [r.method] : [];
+}
+
+function methodChips(selected, act) {
+  return METHODS.map((m) => {
+    const on = selected.includes(m.id);
+    return `<button type="button" class="mchip ${on ? 'on' : ''}" data-act="${act}" data-v="${m.id}" aria-pressed="${on}">${svg(m.id)}${esc(m.name)}</button>`;
+  }).join('');
+}
+
 function renderBest() {
-  const list = best();
+  const all = best();
+  const list = bestFilter ? all.filter((b) => bestMethods(b).includes(bestFilter)) : all;
+  const fm = methodOf(bestFilter);
   return `
     ${bar('Melhores cafés', { icon: 'medal', action: '<a class="act" href="#/melhores/novo">+ Adicionar</a>' })}
     <section class="content">
+      ${all.length ? `
+        <div class="mchips filter" role="group" aria-label="Filtrar por método">
+          <button type="button" class="mchip ${bestFilter ? '' : 'on'}" data-act="best-filter" data-v="" aria-pressed="${!bestFilter}">Todos</button>
+          ${methodChips(bestFilter ? [bestFilter] : [], 'best-filter')}
+        </div>` : ''}
       ${list.length ? `
         <ol class="best-list">
           ${list.map((b, i) => {
-            const r = b.recipeId ? store.get(b.recipeId) : null;
-            const m = r && methodOf(r.method);
+            const ms = bestMethods(b).map(methodOf).filter(Boolean);
             return `
               <li class="best" data-id="${b.id}">
                 <span class="pos">${i + 1}</span>
                 <a class="best-body" href="#/b/${b.id}">
                   <span class="n">${byBubble(b.by)}<span>${esc(b.coffee)}</span>${b.score ? `<span class="pts">${esc(b.score)} pts</span>` : ''}</span>
                   ${b.why ? `<span class="s">${esc(b.why)}</span>` : ''}
+                  ${ms.length ? `<span class="for">Indicado para ${ms.map((m) => `<span class="for-m">${svg(m.id)}${esc(m.name)}</span>`).join('')}</span>` : ''}
                   <span class="flags">
-                    ${m ? `<span class="src">${svg(m.id)}receita de ${esc(m.name)}</span>` : '<span class="src">✎ digitado</span>'}
+                    <span class="src">${b.recipeId ? 'da receita' : '✎ digitado'}</span>
                     ${b.buyAgain ? '<span class="flag">compraria de novo</span>' : ''}
                     ${b.recommend ? '<span class="flag">indicaria</span>' : ''}
                   </span>
                 </a>
-                <span class="grip" aria-label="Arrastar para mudar a posição" role="button" tabindex="0">${svg('grip')}</span>
+                ${bestFilter ? '<span></span>' : `<span class="grip" aria-label="Arrastar para mudar a posição" role="button" tabindex="0">${svg('grip')}</span>`}
               </li>`;
           }).join('')}
         </ol>
-        <p class="mini">Segure ≡ e arraste para mudar a ordem do ranking.</p>` : `
+        <p class="mini">${bestFilter ? `Ranking dos melhores para ${esc(fm.name)}. Para mudar a ordem, volte para “Todos”.` : 'Segure ≡ e arraste para mudar a ordem do ranking.'}</p>` : bestFilter ? `
+        <div class="empty"><p>Nenhum café indicado para ${esc(fm.name)} ainda.</p></div>` : `
         <div class="empty"><p>Ainda não tem nenhum café aqui. Adicione os cafés que vocês indicariam e comprariam de novo.</p></div>`}
       <a class="fab" href="#/melhores/novo">+ Adicionar café</a>
     </section>`;
@@ -469,6 +492,7 @@ function newBest(recipeId) {
     source: 'receita',
     recipeId: r ? r.id : null,
     coffee: r ? r.coffee : '', score: r ? r.score : '', why: r ? r.notes : '',
+    methods: r ? [r.method] : bestFilter ? [bestFilter] : [],
     where: '', buyAgain: true, recommend: true, rank: null, q: '',
   };
 }
@@ -478,6 +502,7 @@ function pickRecipe(r) {
   bestDraft.coffee = r.coffee;
   bestDraft.score = r.score || '';
   if (!bestDraft.why) bestDraft.why = r.notes || '';
+  if (!bestDraft.methods.length) bestDraft.methods = [r.method];
 }
 
 function renderBestForm(isNew) {
@@ -509,6 +534,10 @@ function renderBestForm(isNew) {
         <label class="field"><span class="lbl">Café</span>${binp('coffee', 'Nome do café')}</label>
         <label class="field"><span class="lbl">Pontos</span>${binp('score', '86', 'decimal')}</label>
       </div>
+      <div class="field"><span class="lbl">Indicado para qual método</span>
+        <div class="mchips" role="group" aria-label="Indicado para">${methodChips(b.methods, 'best-method')}</div>
+        <span class="mini">Pode marcar mais de um.</span>
+      </div>
       <label class="field"><span class="lbl">Por que está entre os melhores</span>
         <textarea class="in" data-b="why" rows="3" placeholder="Doce, limpo, chocolate ao leite…">${esc(b.why)}</textarea></label>
       <label class="field"><span class="lbl">Onde comprar (opcional)</span>${binp('where', 'Torrefação, loja, assinatura…')}</label>
@@ -525,11 +554,16 @@ function saveBest() {
     toast(b.source === 'receita' && !b.recipeId ? 'Escolha uma receita ou digite o nome do café.' : 'Digite o nome do café.');
     return;
   }
+  if (!b.methods.length) {
+    toast('Marque para qual método você indica este café.');
+    return;
+  }
   const list = best();
   const rec = {
     id: b.id, by: b.by, createdAt: b.createdAt,
     recipeId: b.source === 'receita' ? b.recipeId : null,
     coffee: b.coffee.trim(), score: b.score, why: b.why, where: b.where,
+    methods: METHODS.map((m) => m.id).filter((id) => b.methods.includes(id)),
     buyAgain: b.buyAgain, recommend: b.recommend,
     rank: b.rank ?? (list.length ? Math.max(...list.map((x) => x.rank)) + 1 : 1),
   };
@@ -685,7 +719,7 @@ async function render({ keepScroll = false } = {}) {
   } else if (p[0] === 'b' && store.list('melhor').find((b) => b.id === p[1])) {
     if (bestKey !== key) {
       const b = store.list('melhor').find((x) => x.id === p[1]);
-      bestDraft = { ...b, source: b.recipeId ? 'receita' : 'nome', q: '' };
+      bestDraft = { ...b, methods: [...bestMethods(b)], source: b.recipeId ? 'receita' : 'nome', q: '' };
       bestKey = key; dirty = false;
     }
     html = renderBestForm(false);
@@ -827,6 +861,15 @@ app.addEventListener('click', async (e) => {
     render({ keepScroll: true });
   } else if (act === 'pick') {
     pickRecipe(store.get(el.dataset.id)); dirty = true;
+    render({ keepScroll: true });
+  } else if (act === 'best-method') {
+    const v = el.dataset.v;
+    bestDraft.methods = bestDraft.methods.includes(v) ? bestDraft.methods.filter((x) => x !== v) : [...bestDraft.methods, v];
+    dirty = true;
+    const on = bestDraft.methods.includes(v);
+    el.classList.toggle('on', on); el.setAttribute('aria-pressed', on);
+  } else if (act === 'best-filter') {
+    bestFilter = bestFilter === el.dataset.v ? '' : el.dataset.v;
     render({ keepScroll: true });
   } else if (act === 'save-best') {
     saveBest();

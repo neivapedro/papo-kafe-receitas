@@ -200,6 +200,16 @@ textarea.in { resize: vertical; line-height: 1.4; }
 .grip { display: grid; place-items: center; height: 44px; touch-action: none; cursor: grab; }
 .grip svg.ic { stroke: var(--muted); width: 22px; height: 22px; }
 
+.mchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.mchips.filter { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: -2px -16px 0; padding: 2px 16px 4px; }
+.mchips.filter::-webkit-scrollbar { display: none; }
+.mchip { flex: none; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: var(--white); border-radius: 999px; padding: 7px 12px; font: 600 13px var(--display); color: var(--ink); min-height: 36px; }
+.mchip svg.ic { width: 16px; height: 16px; }
+.mchip.on { background: var(--brown); border-color: var(--brown); color: var(--white); }
+.mchip.on svg.ic { stroke: var(--white); }
+.for { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 500 12.5px var(--display); color: var(--muted); }
+.for-m { display: inline-flex; align-items: center; gap: 3px; color: var(--brown); font-weight: 600; }
+.for-m svg.ic { width: 15px; height: 15px; }
 .toggle { display: grid; grid-template-columns: 1fr 1fr; background: var(--cream); border-radius: 12px; padding: 4px; gap: 4px; }
 .toggle button { padding: 10px 4px; border-radius: 9px; font: 600 14px var(--display); color: var(--muted); }
 .toggle button.on { background: var(--white); color: var(--brown); box-shadow: 0 1px 3px rgba(30, 21, 14, .12); }
