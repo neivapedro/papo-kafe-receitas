@@ -540,16 +540,6 @@ function saveBest() {
 
 /* ---------- ajustes, entrada e quem sou eu ---------- */
 
-function renderWho() {
-  return `
-    <section class="center">
-      <img class="logo-sm" src="img/logo.png" alt="Papo Kafé" width="900" height="378">
-      <h1>Quem está usando?</h1>
-      <p class="mini">Sua inicial aparece nas receitas que você cadastrar.</p>
-      <div class="who">${PEOPLE.map((p) => `<button class="who-btn" data-act="me" data-v="${esc(p.name)}"><span class="by big">${esc(p.initial)}</span>${esc(p.name)}</button>`).join('')}</div>
-    </section>`;
-}
-
 function renderLogin() {
   return `
     <section class="center">
@@ -570,11 +560,9 @@ async function renderSettings() {
   return `
     ${bar('Ajustes', { back: '#/' })}
     <section class="content">
-      <h2 class="sec">Quem está usando este celular</h2>
-      <div class="who">${PEOPLE.map((p) => `<button class="who-btn ${store.me() === p.name ? 'on' : ''}" data-act="me" data-v="${esc(p.name)}"><span class="by big">${esc(p.initial)}</span>${esc(p.name)}</button>`).join('')}</div>
-      <h2 class="sec">Compartilhamento</h2>
+      <h2 class="sec">Conta</h2>
       ${mode === 'nuvem' ? `
-        <p>Conectado como <b>${esc(email || '')}</b>. As receitas são as mesmas nos celulares do Pedro e da Karoline.</p>
+        <p>Conectado como <b>${esc(store.me() || '')}</b> (${esc(email || '')}). As receitas são as mesmas nos celulares do Pedro e da Karoline.</p>
         ${pend ? `<p class="mini">${pend} alteração(ões) aguardando internet para sincronizar.</p>` : '<p class="mini">Tudo sincronizado.</p>'}
         <button class="btn-text danger" data-act="logout">Sair da conta</button>` : `
         <p>As receitas estão salvas só neste celular.</p>
@@ -660,8 +648,6 @@ async function render({ keepScroll = false } = {}) {
 
   if (mode === 'login') {
     html = renderLogin();
-  } else if (!store.me()) {
-    html = renderWho();
   } else if (!p.length) {
     html = renderHome(); tab = 'metodos';
   } else if (p[0] === 'm' && methodOf(p[1])) {
@@ -844,9 +830,6 @@ app.addEventListener('click', async (e) => {
     saved(store.put('melhor', ...rest.map((b, i) => ({ ...b, rank: i + 1 }))));
     dirty = false;
     location.replace('#/melhores');
-  } else if (act === 'me') {
-    store.setMe(el.dataset.v);
-    render();
   } else if (act === 'logout') {
     await store.signOut();
     mode = 'login';

@@ -5,7 +5,8 @@
 export const SUPABASE_URL = '';
 export const SUPABASE_ANON_KEY = '';
 
-// Quem pode usar o app. A inicial aparece na bolinha de quem cadastrou.
+// Quem usa o app. Cada um entra com o próprio e-mail; o nome vem do cadastro
+// no Supabase (supabase.sql, passo 2) e a inicial aparece na bolinha das receitas.
 export const PEOPLE = [
   { name: 'Pedro', initial: 'P' },
   { name: 'Karoline', initial: 'K' },

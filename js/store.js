@@ -3,7 +3,7 @@
 // Com o Supabase configurado (js/config.js), sincroniza com a conta da casa:
 // o que o Pedro salva aparece para a Karoline e vice-versa.
 
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, PEOPLE } from './config.js';
 
 const KEY = 'papo-kafe-receitas:v1';
 const PENDING_KEY = 'papo-kafe-receitas:pendentes';
@@ -79,6 +79,14 @@ function subscribe() {
     .subscribe();
 }
 
+// O nome fica no cadastro do usuário no Supabase (user_metadata.name).
+function personOf(user) {
+  const name = user?.user_metadata?.name;
+  if (name) return PEOPLE.find((p) => p.name.toLowerCase() === name.toLowerCase())?.name || name;
+  const nick = String(user?.email || '').split('@')[0];
+  return nick ? nick[0].toUpperCase() + nick.slice(1) : null;
+}
+
 async function startSync() {
   await flush();
   if (await pull()) listener();
@@ -99,6 +107,7 @@ export const store = {
     }
     const { data } = await client.auth.getSession();
     if (!data.session) return 'login';
+    write(ME_KEY, personOf(data.session.user));
     startSync().catch(() => {});
     window.addEventListener('online', () => startSync().catch(() => {}));
     document.addEventListener('visibilitychange', () => {
@@ -115,6 +124,7 @@ export const store = {
 
   async signOut() {
     if (client) await client.auth.signOut();
+    try { localStorage.removeItem(ME_KEY); } catch {}
   },
 
   async userEmail() {
@@ -156,6 +166,6 @@ export const store = {
 
   pendingCount: () => pending.size,
 
+  // Nome de quem entrou, tirado do e-mail do login (veja PEOPLE em config.js).
   me: () => read(ME_KEY, null),
-  setMe: (name) => write(ME_KEY, name),
 };

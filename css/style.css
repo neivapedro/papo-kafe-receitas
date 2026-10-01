@@ -219,9 +219,6 @@ textarea.in { resize: vertical; line-height: 1.4; }
 .logo-sm { width: min(70%, 300px); height: auto; margin-bottom: 18px; }
 .login { width: 100%; max-width: 360px; display: grid; gap: 12px; text-align: left; }
 .err { color: var(--danger); font-size: 14px; }
-.who { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.who-btn { display: grid; justify-items: center; gap: 6px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--white); font: 600 15px var(--display); min-width: 120px; }
-.who-btn.on { border-color: var(--brown); box-shadow: 0 0 0 1px var(--brown); }
 
 /* folha de confirmação */
 .sheet-wrap { position: fixed; inset: 0; z-index: 50; display: grid; align-items: end; }

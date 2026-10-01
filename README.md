@@ -21,16 +21,16 @@ toque em **Compartilhar → Adicionar à Tela de Início**. O ícone aparece com
 
 ## Ligar o compartilhamento (Pedro e Karoline)
 
-Sem esta etapa, o app funciona normalmente, mas cada celular guarda só as próprias receitas.
+Cada um entra com o próprio e-mail e senha. Tudo o que um cadastra aparece para o outro,
+e a bolinha com a inicial (P ou K) mostra quem fez cada receita.
 
 1. Crie uma conta grátis em <https://supabase.com> e um projeto novo (ex.: `papo-kafe`).
-2. **SQL Editor → New query**: cole o conteúdo de `supabase.sql` e clique em **Run**.
-3. **Authentication → Users → Add user → Create new user**: crie um usuário para o Pedro
-   e outro para a Karoline (e-mail e senha, com "Auto Confirm User" marcado).
-4. **Authentication → Sign In / Providers**: desligue **Allow new users to sign up**,
+2. **SQL Editor → New query**: cole a primeira parte de `supabase.sql` (até o "PASSO 2") e clique em **Run**.
+3. **Authentication → Users → Add user → Create new user**: crie o usuário do Pedro
+   e o da Karoline (e-mail e senha, com "Auto Confirm User" marcado).
+4. **SQL Editor**: rode o "PASSO 2" de `supabase.sql` com os e-mails de vocês, para gravar os nomes.
+5. **Authentication → Sign In / Providers**: desligue **Allow new users to sign up**,
    para ninguém de fora conseguir criar conta.
-5. **Project Settings → API**: copie a **Project URL** e a chave **anon public**
+6. **Project Settings → API Keys**: copie a **Project URL** e a chave **publishable** (ou "anon public")
    e cole em `js/config.js` (`SUPABASE_URL` e `SUPABASE_ANON_KEY`).
-   A chave anon é feita para ficar no app; quem protege os dados é o login.
-
-Depois disso, cada um entra com o próprio e-mail e senha, e as receitas aparecem nos dois celulares.
+   Essa chave é feita para ficar no app; quem protege os dados é o login.
