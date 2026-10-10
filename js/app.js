@@ -17,6 +17,13 @@ let bestFilter = '';   // método escolhido no filtro dos melhores ('' = todos)
 
 const GRINDS = ['fina', 'média-fina', 'média', 'média-grossa', 'grossa'];
 
+// Sugestões de variedade (as já usadas pelo casal entram na lista automaticamente).
+const VARIETIES = [
+  'Catuaí Amarelo', 'Catuaí Vermelho', 'Mundo Novo', 'Bourbon Amarelo', 'Bourbon Vermelho',
+  'Yellow Bourbon', 'Topázio', 'Arara', 'Acaiá', 'Catucaí', 'Obatã', 'Icatu', 'Rubi',
+  'Geisha', 'Typica', 'Caturra', 'Pacamara', 'SL28', 'Maragogipe', 'Paraíso',
+];
+
 const METHODS = [
   {
     id: 'v60', name: 'V60', pours: true,
@@ -188,6 +195,7 @@ function recipeCard(r) {
     <article class="card" data-act="open" data-id="${r.id}">
       <div class="card-main">
         <div class="card-name">${byBubble(r.by)}<span>${esc(r.coffee)}</span>${r.score ? `<span class="pts">${esc(r.score)} pts</span>` : ''}</div>
+        ${r.variety ? `<div class="variety">${svg('bean')}${esc(r.variety)}</div>` : ''}
         ${meta ? `<div class="meta">${esc(meta)}</div>` : ''}
         ${r.rating ? `<div class="rate">${grains(r.rating)}</div>` : ''}
       </div>
@@ -264,6 +272,7 @@ function renderRecipe(r) {
         </div>
         <button class="star big ${r.fav ? 'on' : ''}" data-act="fav" data-id="${r.id}" aria-label="${r.fav ? 'Tirar das favoritas' : 'Marcar como favorita'}" aria-pressed="${!!r.fav}">${r.fav ? '★' : '☆'}</button>
       </div>
+      ${r.variety ? `<div class="variety big">${svg('bean')}${esc(r.variety)}</div>` : ''}
       ${r.notes ? `<p class="sens">${esc(r.notes)}</p>` : ''}
       <h3 class="vsec">Receita</h3>
       <div class="tags">
@@ -292,7 +301,7 @@ function newDraft(m, base) {
   const src = base || {};
   return {
     id: uid(), method: m.id, by: store.me() || '', createdAt: Date.now(),
-    coffee: '', score: '', notes: '', dose: '', grind: '', clicks: '', water: '', temp: '', tmin: '', tmax: '',
+    coffee: '', score: '', variety: '', notes: '', dose: '', grind: '', clicks: '', water: '', temp: '', tmin: '', tmax: '',
     obs: '', rating: 0, fav: false,
     ...structuredClone(src),
     pours: m.pours ? structuredClone(src.pours || [{ t: '0:00', g: '' }]) : undefined,
@@ -301,7 +310,15 @@ function newDraft(m, base) {
 }
 
 function inp(field, { ph = '', mode = 'text', time = '', cls = '' } = {}) {
-  return `<input class="in ${cls}" data-f="${field}" value="${esc(draft[field])}" placeholder="${esc(ph)}" inputmode="${mode}" autocomplete="off"${time ? ` data-time="${time}"` : ''}>`;
+  const list = field === 'variety' ? ' list="variedades"' : '';
+  return `<input class="in ${cls}" data-f="${field}" value="${esc(draft[field] ?? '')}" placeholder="${esc(ph)}" inputmode="${mode}" autocomplete="off"${list}${time ? ` data-time="${time}"` : ''}>`;
+}
+
+function varietyList() {
+  const used = [...recipes(), ...store.list('melhor')].map((x) => (x.variety || '').trim()).filter(Boolean);
+  const all = [...new Map([...used, ...VARIETIES].map((v) => [norm(v), v])).values()]
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  return `<datalist id="variedades">${all.map((v) => `<option value="${esc(v)}">`).join('')}</datalist>`;
 }
 
 function pourHints() {
@@ -328,6 +345,8 @@ function renderForm(m, title) {
         <label class="field"><span class="lbl">Café</span>${inp('coffee', { ph: ref.coffee || 'Nome do café' })}</label>
         <label class="field"><span class="lbl">Pontos</span>${inp('score', { ph: '84', mode: 'decimal' })}</label>
       </div>
+      <label class="field"><span class="lbl">Variedade</span>${inp('variety', { ph: 'Catuaí Amarelo', cls: 'variety-in' })}</label>
+      ${varietyList()}
       <label class="field"><span class="lbl">Notas sensoriais</span>
         <textarea class="in" data-f="notes" rows="2" placeholder="Chocolate ao leite, fava de baunilha e mel">${esc(draft.notes)}</textarea></label>
 
@@ -404,7 +423,7 @@ function saveDraft() {
     app.querySelector('[data-f="coffee"]')?.focus();
     return;
   }
-  const clean = { ...draft, coffee: draft.coffee.trim(), updatedAt: Date.now() };
+  const clean = { ...draft, coffee: draft.coffee.trim(), variety: (draft.variety || '').trim(), updatedAt: Date.now() };
   if (clean.pours) clean.pours = clean.pours.filter((p) => p.t || p.g);
   if (clean.steps) clean.steps = clean.steps.filter((s) => s.t || s.x);
   if (!saved(store.put('receita', clean))) return;
@@ -466,6 +485,7 @@ function renderBest() {
                 <span class="pos">${i + 1}</span>
                 <a class="best-body" href="#/b/${b.id}">
                   <span class="n">${byBubble(b.by)}<span>${esc(b.coffee)}</span>${b.score ? `<span class="pts">${esc(b.score)} pts</span>` : ''}</span>
+                  ${b.variety ? `<span class="variety">${svg('bean')}${esc(b.variety)}</span>` : ''}
                   ${b.why ? `<span class="s">${esc(b.why)}</span>` : ''}
                   ${ms.length ? `<span class="for">Indicado para ${ms.map((m) => `<span class="for-m">${svg(m.id)}${esc(m.name)}</span>`).join('')}</span>` : ''}
                   <span class="flags">
@@ -491,7 +511,7 @@ function newBest(recipeId) {
     id: uid(), by: store.me() || '', createdAt: Date.now(),
     source: 'receita',
     recipeId: r ? r.id : null,
-    coffee: r ? r.coffee : '', score: r ? r.score : '', why: r ? r.notes : '',
+    coffee: r ? r.coffee : '', score: r ? r.score : '', variety: r ? r.variety || '' : '', why: r ? r.notes : '',
     methods: r ? [r.method] : bestFilter ? [bestFilter] : [],
     where: '', buyAgain: true, recommend: true, rank: null, q: '',
   };
@@ -501,6 +521,7 @@ function pickRecipe(r) {
   bestDraft.recipeId = r.id;
   bestDraft.coffee = r.coffee;
   bestDraft.score = r.score || '';
+  if (r.variety) bestDraft.variety = r.variety;
   if (!bestDraft.why) bestDraft.why = r.notes || '';
   if (!bestDraft.methods.length) bestDraft.methods = [r.method];
 }
@@ -534,6 +555,8 @@ function renderBestForm(isNew) {
         <label class="field"><span class="lbl">Café</span>${binp('coffee', 'Nome do café')}</label>
         <label class="field"><span class="lbl">Pontos</span>${binp('score', '86', 'decimal')}</label>
       </div>
+      <label class="field"><span class="lbl">Variedade</span><input class="in" data-b="variety" value="${esc(b.variety || '')}" placeholder="Catuaí Amarelo" list="variedades" autocomplete="off"></label>
+      ${varietyList()}
       <div class="field"><span class="lbl">Indicado para qual método</span>
         <div class="mchips" role="group" aria-label="Indicado para">${methodChips(b.methods, 'best-method')}</div>
         <span class="mini">Pode marcar mais de um.</span>
@@ -562,7 +585,7 @@ function saveBest() {
   const rec = {
     id: b.id, by: b.by, createdAt: b.createdAt,
     recipeId: b.source === 'receita' ? b.recipeId : null,
-    coffee: b.coffee.trim(), score: b.score, why: b.why, where: b.where,
+    coffee: b.coffee.trim(), score: b.score, variety: (b.variety || '').trim(), why: b.why, where: b.where,
     methods: METHODS.map((m) => m.id).filter((id) => b.methods.includes(id)),
     buyAgain: b.buyAgain, recommend: b.recommend,
     rank: b.rank ?? (list.length ? Math.max(...list.map((x) => x.rank)) + 1 : 1),

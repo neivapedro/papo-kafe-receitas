@@ -94,6 +94,10 @@ svg.ic { width: 26px; height: 26px; stroke: var(--brown); fill: none; stroke-wid
 .card-main { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .card-name { font: 600 17px/1.25 var(--display); display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .pts { color: var(--brown); font: 600 13px var(--display); white-space: nowrap; }
+.variety { display: inline-flex; align-items: center; gap: 5px; font: 600 13.5px var(--display); color: var(--caramel); }
+.variety svg.ic { width: 15px; height: 15px; stroke: var(--caramel); }
+.variety.big { font-size: 15.5px; }
+.variety.big svg.ic { width: 18px; height: 18px; }
 .meta { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 .rate { display: inline-flex; gap: 3px; align-items: center; }
 .rate .grain { width: 10px; height: 12px; }
