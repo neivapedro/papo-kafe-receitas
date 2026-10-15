@@ -191,7 +191,7 @@ textarea.in { resize: vertical; line-height: 1.4; }
 
 /* melhores cafés */
 .best-list { list-style: none; margin: 0; padding: 0; display: grid; }
-.best { display: grid; grid-template-columns: 30px 1fr 36px; gap: 10px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--line); background: var(--paper); }
+.best { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: start; padding: 12px 0; border-bottom: 1px solid var(--line); background: var(--paper); }
 .best.dragging { position: relative; z-index: 3; background: var(--white); box-shadow: 0 8px 22px rgba(30, 21, 14, .18); border-radius: 12px; }
 .best .pos { font: 700 23px/1.1 var(--display); color: var(--caramel); text-align: center; }
 .best-body { display: grid; gap: 4px; min-width: 0; }
@@ -214,6 +214,28 @@ textarea.in { resize: vertical; line-height: 1.4; }
 .for { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font: 500 12.5px var(--display); color: var(--muted); }
 .for-m { display: inline-flex; align-items: center; gap: 3px; color: var(--brown); font-weight: 600; }
 .for-m svg.ic { width: 15px; height: 15px; }
+.mchip.small { min-height: 32px; padding: 5px 11px; font-size: 12.5px; }
+.mchip .cnt { opacity: .65; font-weight: 500; }
+.medal { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 9px; font: 700 11.5px var(--display); color: var(--white); background: var(--caramel); }
+.medal.p1 { background: #b8892c; }
+.medal.p2 { background: #8d8a86; }
+.medal.p3 { background: #9a5b2e; }
+.medal.big { font-size: 15px; padding: 5px 9px; }
+.best .pos { display: grid; justify-items: center; }
+.podium { grid-column: 2 / -1; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.podium .lbl { display: inline-flex; align-items: center; gap: 5px; min-width: 120px; }
+.podium .lbl svg.ic { width: 15px; height: 15px; }
+.podium-rows { display: grid; gap: 12px; }
+.podium-rows .podium .lbl { flex-basis: 100%; }
+.medal-btn { min-width: 46px; min-height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--white); font: 700 14px var(--display); color: var(--muted); }
+.medal-btn.on.p1 { background: #b8892c; border-color: #b8892c; color: var(--white); }
+.medal-btn.on.p2 { background: #8d8a86; border-color: #8d8a86; color: var(--white); }
+.medal-btn.on.p3 { background: #9a5b2e; border-color: #9a5b2e; color: var(--white); }
+.stock { border-radius: 999px; padding: 2px 9px; font: 600 11.5px var(--display); }
+.stock.casa { background: var(--brown); color: var(--white); }
+.stock.acabou { background: var(--line); color: var(--muted); }
+.best.gone .n, .best.gone .s { opacity: .6; }
+select.in { background-image: none; }
 .toggle { display: grid; grid-template-columns: 1fr 1fr; background: var(--cream); border-radius: 12px; padding: 4px; gap: 4px; }
 .toggle button { padding: 10px 4px; border-radius: 9px; font: 600 14px var(--display); color: var(--muted); }
 .toggle button.on { background: var(--white); color: var(--brown); box-shadow: 0 1px 3px rgba(30, 21, 14, .12); }

@@ -1,6 +1,6 @@
 // Funciona sem internet: com rede, sempre busca a versão mais nova do app;
 // sem rede, usa a cópia guardada no aparelho.
-const CACHE = 'papo-kafe-receitas-v7';
+const CACHE = 'papo-kafe-receitas-v8';
 const ASSETS = [
   './',
   './index.html',

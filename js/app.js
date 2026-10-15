@@ -9,9 +9,10 @@ let mode = 'local';    // 'local' | 'nuvem' | 'login' | 'local-offline'
 let draft = null;      // receita sendo preenchida
 let draftKey = null;   // rota dona do rascunho
 let dirty = false;
-let bestDraft = null;  // item dos melhores sendo preenchido
+let bestDraft = null;  // café sendo preenchido (aba Cafés)
 let bestKey = null;
-let bestFilter = '';   // método escolhido no filtro dos melhores ('' = todos)
+let bestFilter = '';   // método escolhido no filtro da aba Cafés ('' = todos)
+let stockFilter = '';  // '' | 'casa' | 'acabou'
 
 /* ---------- métodos e receitas de referência ---------- */
 
@@ -91,6 +92,7 @@ const ICON = {
   drop: '<path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/>',
   temp: '<path d="M12 3v11"/><circle cx="12" cy="17.5" r="3.5"/><path d="M12 6h3M12 9h2"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',
+  bag: '<path d="M7 3h10l1.5 5v13h-13V8z"/><path d="M5.5 8h13M10 3l-1 5M14 3l1 5"/><path d="M10 13c1-1.5 3-1.5 4 0"/>',
   medal: '<path d="M8 2l2.5 6M16 2l-2.5 6"/><circle cx="12" cy="14.5" r="6"/><path d="M12 11.5l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M2.5 12h3M18.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/>',
   grip: '<path d="M7 7h10M7 12h10M7 17h10"/>',
@@ -149,7 +151,6 @@ function saved(ok) {
 }
 
 const recipes = () => store.list('receita');
-const best = () => store.list('melhor').sort((a, b) => a.rank - b.rank);
 const recipesOf = (m) => recipes().filter((r) => r.method === m).sort((a, b) => b.createdAt - a.createdAt);
 
 /* ---------- folha de confirmação (substitui confirm) ---------- */
@@ -210,7 +211,7 @@ function renderTabs(active) {
   tabsEl.innerHTML =
     t('metodos', '#/', '<i class="grain"></i>', 'Métodos') +
     t('favoritas', '#/favoritas', `<span class="s">${active === 'favoritas' ? '★' : '☆'}</span>`, 'Favoritas') +
-    t('melhores', '#/melhores', svg('medal'), 'Melhores');
+    t('cafes', '#/cafes', svg('bag'), 'Cafés');
   tabsEl.hidden = false;
 }
 
@@ -251,7 +252,7 @@ function tag(icon, k, v, cls = '') {
 
 function renderRecipe(r) {
   const m = methodOf(r.method);
-  const inBest = best().find((b) => b.recipeId === r.id);
+  const inBest = coffees().find((b) => b.recipeId === r.id);
   const grind = [r.grind, r.clicks && `${r.clicks} cl.`].filter(Boolean).join(' · ');
   let prev = 0;
   const pours = (r.pours || []).filter((p) => p.t || p.g).map((p) => {
@@ -288,7 +289,7 @@ function renderRecipe(r) {
       ${r.obs ? `<div class="note"><b>Observação</b>${esc(r.obs)}</div>` : ''}
       <div class="vact">
         <a href="#/r/${r.id}/duplicar">Duplicar</a>
-        ${inBest ? `<a href="#/b/${inBest.id}">${svg('medal')} ${inBest.rank}º nos melhores</a>` : `<a href="#/melhores/novo/${r.id}">✚ Melhores</a>`}
+        ${inBest ? `<a href="#/c/${inBest.id}">${svg('bag')} Ver em Cafés</a>` : `<a href="#/cafes/novo/${r.id}">✚ Cafés</a>`}
         <button data-act="del-recipe" data-id="${r.id}">Apagar</button>
       </div>
       <p class="by-line">${r.by ? `${byBubble(r.by)} cadastrada por ${esc(r.by)} · ` : ''}${fmtDate(r.createdAt)}</p>
@@ -341,6 +342,12 @@ function renderForm(m, title) {
     ${bar(title, { back: 'back', icon: m.id, action: '<button class="act" data-act="save">Salvar</button>' })}
     <form class="content form" autocomplete="off" novalidate>
       <h2 class="sec">Café</h2>
+      ${coffees().length ? `
+        <label class="field"><span class="lbl">Usar um café cadastrado</span>
+          <select class="in" data-use-coffee>
+            <option value="">Escolher dos meus cafés…</option>
+            ${coffees().map((c) => `<option value="${c.id}">${esc(c.coffee)}${c.variety ? ` · ${esc(c.variety)}` : ''}${(c.status || 'casa') === 'acabou' ? ' (acabou)' : ''}</option>`).join('')}
+          </select></label>` : ''}
       <div class="row2 narrow-right">
         <label class="field"><span class="lbl">Café</span>${inp('coffee', { ph: ref.coffee || 'Nome do café' })}</label>
         <label class="field"><span class="lbl">Pontos</span>${inp('score', { ph: '84', mode: 'decimal' })}</label>
@@ -448,7 +455,11 @@ function renderFavs() {
     </section>`;
 }
 
-/* ---------- melhores cafés ---------- */
+/* ---------- cafés: o que temos (ou tivemos) em casa e o pódio de cada método ---------- */
+
+const MEDALS = ['', '1º', '2º', '3º'];
+const coffees = () => store.list('melhor').sort((a, b) => a.createdAt - b.createdAt);
+const coffeeOf = (id) => store.list('melhor').find((c) => c.id === id);
 
 // Métodos para os quais o café é indicado. Itens antigos, sem a lista, herdam o método da receita.
 function bestMethods(b) {
@@ -464,136 +475,194 @@ function methodChips(selected, act) {
   }).join('');
 }
 
-function renderBest() {
-  const all = best();
-  const list = bestFilter ? all.filter((b) => bestMethods(b).includes(bestFilter)) : all;
+// Antes havia um ranking único (rank). Em cada método indicado, os três primeiros
+// desse ranking viram 1º, 2º e 3º do pódio; o resto fica sem medalha.
+function migrateCoffees() {
+  const all = store.list('melhor');
+  const legacy = all.filter((c) => !c.podium)
+    .sort((a, b) => (a.rank ?? 1e9) - (b.rank ?? 1e9) || a.createdAt - b.createdAt);
+  if (!legacy.length) return;
+  const out = legacy.map((c) => ({ ...c, methods: bestMethods(c), podium: {}, status: c.status || 'casa' }));
+  METHODS.forEach((m) => {
+    const taken = new Set(all.filter((c) => c.podium?.[m.id]).map((c) => c.podium[m.id]));
+    let pos = 1;
+    out.filter((c) => c.methods.includes(m.id)).forEach((c) => {
+      while (taken.has(pos)) pos += 1;
+      if (pos <= 3) { c.podium[m.id] = pos; taken.add(pos); }
+    });
+  });
+  store.put('melhor', ...out);
+}
+
+// Coloca o café na posição do pódio (0 tira a medalha). Quem estava ali desce uma
+// posição, até achar um lugar vazio; quem passa do 3º perde a medalha.
+function setPodium(id, method, pos) {
+  const all = coffees();
+  const slots = [null, null, null, null];
+  all.forEach((c) => {
+    const p = c.podium?.[method];
+    if (p && c.id !== id && !slots[p]) slots[p] = c.id;
+  });
+  if (pos) {
+    let carry = id;
+    for (let p = pos; p <= 3 && carry; p += 1) [slots[p], carry] = [carry, slots[p]];
+  }
+  const changed = [];
+  all.forEach((c) => {
+    const np = Math.max(0, slots.indexOf(c.id));
+    if (np === (c.podium?.[method] || 0)) return;
+    const podium = { ...(c.podium || {}) };
+    if (np) podium[method] = np; else delete podium[method];
+    const ms = bestMethods(c);
+    changed.push({ ...c, podium, methods: np && !ms.includes(method) ? [...ms, method] : ms });
+  });
+  if (changed.length) saved(store.put('melhor', ...changed));
+}
+
+function podiumButtons(c, method, act) {
+  const cur = act === 'draft-podium' ? (bestDraft.podium[method] || 0) : (c.podium?.[method] || 0);
+  return [1, 2, 3].map((p) => `<button type="button" class="medal-btn p${p} ${cur === p ? 'on' : ''}" data-act="${act}" data-id="${c.id}" data-m="${method}" data-v="${p}" aria-pressed="${cur === p}">${MEDALS[p]}</button>`).join('');
+}
+
+function renderCafes() {
+  migrateCoffees();
+  const all = coffees();
+  const status = (c) => c.status || 'casa';
+  const list = all.filter((c) => (!bestFilter || bestMethods(c).includes(bestFilter)) && (!stockFilter || status(c) === stockFilter));
+  const rank = (c) => (bestFilter ? c.podium?.[bestFilter] || 9 : Math.min(9, ...Object.values(c.podium || {})));
+  list.sort((a, b) => rank(a) - rank(b) || a.createdAt - b.createdAt);
   const fm = methodOf(bestFilter);
+  const count = (s) => all.filter((c) => !s || status(c) === s).length;
+  const stockChip = (v, label) => `<button type="button" class="mchip small ${stockFilter === v ? 'on' : ''}" data-act="stock-filter" data-v="${v}" aria-pressed="${stockFilter === v}">${label} <span class="cnt">${count(v)}</span></button>`;
   return `
-    ${bar('Melhores cafés', { icon: 'medal', action: '<a class="act" href="#/melhores/novo">+ Adicionar</a>' })}
+    ${bar('Cafés', { icon: 'bag', action: '<a class="act" href="#/cafes/novo">+ Adicionar</a>' })}
     <section class="content">
       ${all.length ? `
         <div class="mchips filter" role="group" aria-label="Filtrar por método">
           <button type="button" class="mchip ${bestFilter ? '' : 'on'}" data-act="best-filter" data-v="" aria-pressed="${!bestFilter}">Todos</button>
           ${methodChips(bestFilter ? [bestFilter] : [], 'best-filter')}
+        </div>
+        <div class="mchips" role="group" aria-label="Filtrar por estoque">
+          ${stockChip('', 'Todos')}${stockChip('casa', 'Em casa')}${stockChip('acabou', 'Acabaram')}
         </div>` : ''}
       ${list.length ? `
         <ol class="best-list">
-          ${list.map((b, i) => {
-            const ms = bestMethods(b).map(methodOf).filter(Boolean);
+          ${list.map((c) => {
+            const ms = bestMethods(c).map(methodOf).filter(Boolean);
+            const pos = bestFilter ? c.podium?.[bestFilter] || 0 : 0;
+            const medals = bestFilter ? '' : METHODS.filter((m) => c.podium?.[m.id])
+              .sort((a, b) => c.podium[a.id] - c.podium[b.id])
+              .map((m) => `<span class="medal p${c.podium[m.id]}">${MEDALS[c.podium[m.id]]} ${esc(m.name)}</span>`).join('');
             return `
-              <li class="best" data-id="${b.id}">
-                <span class="pos">${i + 1}</span>
-                <a class="best-body" href="#/b/${b.id}">
-                  <span class="n">${byBubble(b.by)}<span>${esc(b.coffee)}</span>${b.score ? `<span class="pts">${esc(b.score)} pts</span>` : ''}</span>
-                  ${b.variety ? `<span class="variety">${svg('bean')}${esc(b.variety)}</span>` : ''}
-                  ${b.why ? `<span class="s">${esc(b.why)}</span>` : ''}
+              <li class="best ${status(c) === 'acabou' ? 'gone' : ''}" data-id="${c.id}">
+                <span class="pos">${pos ? `<span class="medal big p${pos}">${MEDALS[pos]}</span>` : ''}</span>
+                <a class="best-body" href="#/c/${c.id}">
+                  <span class="n">${byBubble(c.by)}<span>${esc(c.coffee)}</span>${c.score ? `<span class="pts">${esc(c.score)} pts</span>` : ''}</span>
+                  ${c.variety ? `<span class="variety">${svg('bean')}${esc(c.variety)}</span>` : ''}
+                  ${medals ? `<span class="flags">${medals}</span>` : ''}
+                  ${c.why ? `<span class="s">${esc(c.why)}</span>` : ''}
                   ${ms.length ? `<span class="for">Indicado para ${ms.map((m) => `<span class="for-m">${svg(m.id)}${esc(m.name)}</span>`).join('')}</span>` : ''}
                   <span class="flags">
-                    <span class="src">${b.recipeId ? 'da receita' : '✎ digitado'}</span>
-                    ${b.buyAgain ? '<span class="flag">compraria de novo</span>' : ''}
-                    ${b.recommend ? '<span class="flag">indicaria</span>' : ''}
+                    <span class="stock ${status(c)}">${status(c) === 'casa' ? 'em casa' : 'acabou'}</span>
+                    ${c.rating ? `<span class="rate">${grains(c.rating)}</span>` : ''}
+                    ${c.buyAgain ? '<span class="flag">compraria de novo</span>' : ''}
+                    ${c.recommend ? '<span class="flag">indicaria</span>' : ''}
                   </span>
                 </a>
-                ${bestFilter ? '<span></span>' : `<span class="grip" aria-label="Arrastar para mudar a posição" role="button" tabindex="0">${svg('grip')}</span>`}
+                ${bestFilter ? `<div class="podium"><span class="lbl">Pódio ${esc(fm.name)}</span>${podiumButtons(c, bestFilter, 'podium')}</div>` : ''}
               </li>`;
           }).join('')}
         </ol>
-        <p class="mini">${bestFilter ? `Ranking dos melhores para ${esc(fm.name)}. Para mudar a ordem, volte para “Todos”.` : 'Segure ≡ e arraste para mudar a ordem do ranking.'}</p>` : bestFilter ? `
-        <div class="empty"><p>Nenhum café indicado para ${esc(fm.name)} ainda.</p></div>` : `
-        <div class="empty"><p>Ainda não tem nenhum café aqui. Adicione os cafés que vocês indicariam e comprariam de novo.</p></div>`}
-      <a class="fab" href="#/melhores/novo">+ Adicionar café</a>
+        <p class="mini">${bestFilter ? `Toque em 1º, 2º ou 3º para montar o pódio da ${esc(fm.name)}. Quem estava na posição desce uma.` : 'Escolha um método acima para ver e montar o pódio dele.'}</p>` : `
+        <div class="empty"><p>${all.length ? 'Nenhum café com esse filtro.' : 'Cadastre aqui os cafés que vocês têm ou já tomaram, com ou sem receita.'}</p></div>`}
+      <a class="fab" href="#/cafes/novo">+ Adicionar café</a>
     </section>`;
 }
 
-function newBest(recipeId) {
+function newCoffee(recipeId) {
   const r = recipeId ? store.get(recipeId) : null;
   return {
-    id: uid(), by: store.me() || '', createdAt: Date.now(),
-    source: 'receita',
-    recipeId: r ? r.id : null,
+    id: uid(), by: store.me() || '', createdAt: Date.now(), recipeId: r ? r.id : null,
     coffee: r ? r.coffee : '', score: r ? r.score : '', variety: r ? r.variety || '' : '', why: r ? r.notes : '',
-    methods: r ? [r.method] : bestFilter ? [bestFilter] : [],
-    where: '', buyAgain: true, recommend: true, rank: null, q: '',
+    where: '', methods: r ? [r.method] : bestFilter ? [bestFilter] : [], podium: {},
+    status: 'casa', roastDate: '', qty: '', rating: r ? r.rating || 0 : 0, buyAgain: false, recommend: false,
   };
 }
 
-function pickRecipe(r) {
-  bestDraft.recipeId = r.id;
-  bestDraft.coffee = r.coffee;
-  bestDraft.score = r.score || '';
-  if (r.variety) bestDraft.variety = r.variety;
-  if (!bestDraft.why) bestDraft.why = r.notes || '';
-  if (!bestDraft.methods.length) bestDraft.methods = [r.method];
-}
-
-function renderBestForm(isNew) {
+function renderCoffeeForm(isNew) {
   const b = bestDraft;
-  const q = norm(b.q);
-  const all = recipes().sort((x, y) => x.coffee.localeCompare(y.coffee, 'pt-BR'))
-    .filter((r) => !q || norm(r.coffee).includes(q));
-  const binp = (f, ph, mode = 'text') => `<input class="in" data-b="${f}" value="${esc(b[f])}" placeholder="${esc(ph)}" inputmode="${mode}" autocomplete="off">`;
+  const binp = (f, ph, mode = 'text', type = 'text') => `<input class="in" type="${type}" data-b="${f}" value="${esc(b[f] || '')}" placeholder="${esc(ph)}" inputmode="${mode}" autocomplete="off">`;
   return `
-    ${bar(isNew ? 'Adicionar café' : 'Editar café', { back: 'back', icon: 'medal', action: '<button class="act" data-act="save-best">Salvar</button>' })}
+    ${bar(isNew ? 'Novo café' : 'Editar café', { back: 'back', icon: 'bag', action: '<button class="act" data-act="save-best">Salvar</button>' })}
     <form class="content form" autocomplete="off" novalidate>
-      <div class="toggle" role="tablist">
-        <button type="button" role="tab" aria-selected="${b.source === 'receita'}" class="${b.source === 'receita' ? 'on' : ''}" data-act="source" data-v="receita">Escolher de uma receita</button>
-        <button type="button" role="tab" aria-selected="${b.source === 'nome'}" class="${b.source === 'nome' ? 'on' : ''}" data-act="source" data-v="nome">Digitar o nome</button>
-      </div>
-      ${b.source === 'receita' ? `
-        ${recipes().length ? `
-          <label class="field"><span class="lbl">Buscar nas receitas</span>${binp('q', 'Nome do café…', 'search')}</label>
-          <div class="pick">
-            ${all.map((r) => `
-              <button type="button" class="${b.recipeId === r.id ? 'sel' : ''}" data-act="pick" data-id="${r.id}">
-                ${svg(r.method)}<span>${esc(r.coffee)} <small>· ${esc(methodOf(r.method).name)}${r.score ? ` · ${esc(r.score)} pts` : ''}</small></span><span class="chk">${b.recipeId === r.id ? '✓' : ''}</span>
-              </button>`).join('') || '<p class="mini">Nenhuma receita com esse nome.</p>'}
-          </div>
-          <p class="mini">Nome, pontuação e notas vêm da receita. Dá para editar abaixo.</p>` : `
-          <p class="mini">Você ainda não tem receitas salvas. Use “Digitar o nome”.</p>`}` : ''}
-      <h2 class="sec">Sobre o café</h2>
+      <h2 class="sec">Café</h2>
       <div class="row2 narrow-right">
         <label class="field"><span class="lbl">Café</span>${binp('coffee', 'Nome do café')}</label>
         <label class="field"><span class="lbl">Pontos</span>${binp('score', '86', 'decimal')}</label>
       </div>
       <label class="field"><span class="lbl">Variedade</span><input class="in" data-b="variety" value="${esc(b.variety || '')}" placeholder="Catuaí Amarelo" list="variedades" autocomplete="off"></label>
       ${varietyList()}
-      <div class="field"><span class="lbl">Indicado para qual método</span>
-        <div class="mchips" role="group" aria-label="Indicado para">${methodChips(b.methods, 'best-method')}</div>
-        <span class="mini">Pode marcar mais de um.</span>
-      </div>
-      <label class="field"><span class="lbl">Por que está entre os melhores</span>
+      <label class="field"><span class="lbl">Notas sensoriais e comentários</span>
         <textarea class="in" data-b="why" rows="3" placeholder="Doce, limpo, chocolate ao leite…">${esc(b.why)}</textarea></label>
       <label class="field"><span class="lbl">Onde comprar (opcional)</span>${binp('where', 'Torrefação, loja, assinatura…')}</label>
+
+      <h2 class="sec">Estoque</h2>
+      <div class="toggle" role="radiogroup" aria-label="Estoque">
+        <button type="button" role="radio" aria-checked="${b.status === 'casa'}" class="${b.status === 'casa' ? 'on' : ''}" data-act="cafe-status" data-v="casa">Em casa</button>
+        <button type="button" role="radio" aria-checked="${b.status === 'acabou'}" class="${b.status === 'acabou' ? 'on' : ''}" data-act="cafe-status" data-v="acabou">Acabou</button>
+      </div>
+      <div class="row2">
+        <label class="field"><span class="lbl">Data de torra</span>${binp('roastDate', '', 'text', 'date')}</label>
+        <label class="field"><span class="lbl">Quantidade</span>${binp('qty', '250 g')}</label>
+      </div>
+
+      <h2 class="sec">O que achamos</h2>
+      <div class="field"><span class="lbl">Minha nota</span>
+        <div class="rateline" role="radiogroup" aria-label="Minha nota">
+          ${[1, 2, 3, 4, 5].map((n) => `<button type="button" role="radio" aria-checked="${b.rating === n}" aria-label="${n} de 5" data-act="cafe-rate" data-v="${n}"><i class="grain ${n <= b.rating ? '' : 'off'}"></i></button>`).join('')}
+        </div>
+      </div>
       <label class="check"><input type="checkbox" data-b="buyAgain" ${b.buyAgain ? 'checked' : ''}><span>Compraria de novo</span></label>
       <label class="check"><input type="checkbox" data-b="recommend" ${b.recommend ? 'checked' : ''}><span>Indicaria</span></label>
+
+      <h2 class="sec">Indicado para</h2>
+      <div class="mchips" role="group" aria-label="Indicado para">${methodChips(b.methods, 'best-method')}</div>
+      ${b.methods.length ? `
+        <div class="podium-rows">
+          ${METHODS.filter((m) => b.methods.includes(m.id)).map((m) => `
+            <div class="podium"><span class="lbl">${svg(m.id)}Pódio ${esc(m.name)}</span>${podiumButtons(b, m.id, 'draft-podium')}</div>`).join('')}
+        </div>
+        <p class="mini">Opcional. Se a posição já for de outro café, ele desce uma.</p>` : '<p class="mini">Marque os métodos em que este café vai bem. Pode ser mais de um.</p>'}
+
       <button type="button" class="fab" data-act="save-best">Salvar</button>
-      ${isNew ? '' : `<button type="button" class="btn-text danger" data-act="del-best">Tirar dos melhores</button>`}
+      ${isNew ? '' : '<button type="button" class="btn-text danger" data-act="del-best">Excluir café</button>'}
     </form>`;
 }
 
-function saveBest() {
+function saveCoffee() {
   const b = bestDraft;
   if (!b.coffee.trim()) {
-    toast(b.source === 'receita' && !b.recipeId ? 'Escolha uma receita ou digite o nome do café.' : 'Digite o nome do café.');
+    toast('Digite o nome do café.');
+    app.querySelector('[data-b="coffee"]')?.focus();
     return;
   }
-  if (!b.methods.length) {
-    toast('Marque para qual método você indica este café.');
-    return;
-  }
-  const list = best();
+  const stored = coffeeOf(b.id);
   const rec = {
-    id: b.id, by: b.by, createdAt: b.createdAt,
-    recipeId: b.source === 'receita' ? b.recipeId : null,
+    id: b.id, by: b.by, createdAt: b.createdAt, recipeId: b.recipeId || null,
     coffee: b.coffee.trim(), score: b.score, variety: (b.variety || '').trim(), why: b.why, where: b.where,
     methods: METHODS.map((m) => m.id).filter((id) => b.methods.includes(id)),
+    podium: { ...(stored?.podium || {}) },
+    status: b.status, roastDate: b.roastDate, qty: b.qty, rating: b.rating,
     buyAgain: b.buyAgain, recommend: b.recommend,
-    rank: b.rank ?? (list.length ? Math.max(...list.map((x) => x.rank)) + 1 : 1),
   };
   if (!saved(store.put('melhor', rec))) return;
+  METHODS.forEach((m) => {
+    const want = rec.methods.includes(m.id) ? b.podium[m.id] || 0 : 0;
+    if (want !== (rec.podium[m.id] || 0)) setPodium(rec.id, m.id, want);
+  });
   dirty = false; bestDraft = null; bestKey = null;
-  toast('Salvo nos melhores');
-  location.replace('#/melhores');
+  toast('Café salvo');
+  location.replace('#/cafes');
 }
 
 /* ---------- ajustes, entrada e quem sou eu ---------- */
@@ -628,65 +697,6 @@ async function renderSettings() {
     </section>`;
 }
 
-/* ---------- arrastar no ranking ---------- */
-
-function enableDrag() {
-  const list = app.querySelector('.best-list');
-  if (!list) return;
-  let item = null;
-  let startY = 0;
-  list.addEventListener('pointerdown', (e) => {
-    const grip = e.target.closest('.grip');
-    if (!grip) return;
-    e.preventDefault();
-    item = grip.closest('.best');
-    startY = e.clientY;
-    item.classList.add('dragging');
-    grip.setPointerCapture(e.pointerId);
-  });
-  list.addEventListener('pointermove', (e) => {
-    if (!item) return;
-    item.style.transform = `translateY(${e.clientY - startY}px)`;
-    const siblings = [...list.children].filter((li) => li !== item);
-    const after = siblings.find((li) => {
-      const r = li.getBoundingClientRect();
-      return e.clientY < r.top + r.height / 2;
-    });
-    const before = item.getBoundingClientRect().top;
-    if (after) { if (after !== item.nextElementSibling) list.insertBefore(item, after); } else if (item !== list.lastElementChild) list.append(item);
-    startY += item.getBoundingClientRect().top - before;
-    item.style.transform = `translateY(${e.clientY - startY}px)`;
-  });
-  const end = () => {
-    if (!item) return;
-    item.classList.remove('dragging');
-    item.style.transform = '';
-    item = null;
-    const ids = [...list.children].map((li) => li.dataset.id);
-    const byId = Object.fromEntries(best().map((b) => [b.id, b]));
-    const changed = ids.map((id, i) => ({ ...byId[id], rank: i + 1 })).filter((b) => byId[b.id].rank !== b.rank);
-    if (changed.length) saved(store.put('melhor', ...changed));
-    render({ keepScroll: true });
-  };
-  list.addEventListener('pointerup', end);
-  list.addEventListener('pointercancel', end);
-  // teclado: setas sobem e descem o café
-  list.addEventListener('keydown', (e) => {
-    const grip = e.target.closest('.grip');
-    if (!grip || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
-    e.preventDefault();
-    const ids = best().map((b) => b.id);
-    const i = ids.indexOf(grip.closest('.best').dataset.id);
-    const j = e.key === 'ArrowUp' ? i - 1 : i + 1;
-    if (j < 0 || j >= ids.length) return;
-    [ids[i], ids[j]] = [ids[j], ids[i]];
-    const byId = Object.fromEntries(best().map((b) => [b.id, b]));
-    saved(store.put('melhor', ...ids.map((id, k) => ({ ...byId[id], rank: k + 1 }))));
-    render({ keepScroll: true });
-    app.querySelectorAll('.grip')[j]?.focus();
-  });
-}
-
 /* ---------- rotas ---------- */
 
 function route() {
@@ -696,7 +706,7 @@ function route() {
 
 const isFormRoute = (p) => (p[0] === 'm' && (p[2] === 'nova' || p[2] === 'referencia'))
   || (p[0] === 'r' && (p[2] === 'editar' || p[2] === 'duplicar'))
-  || (p[0] === 'melhores' && p[1] === 'novo') || p[0] === 'b';
+  || (p[0] === 'cafes' && p[1] === 'novo') || p[0] === 'c';
 
 async function render({ keepScroll = false } = {}) {
   const y = window.scrollY;
@@ -734,18 +744,24 @@ async function render({ keepScroll = false } = {}) {
     }
   } else if (p[0] === 'favoritas') {
     html = renderFavs(); tab = 'favoritas';
-  } else if (p[0] === 'melhores' && p[1] === 'novo') {
-    if (bestKey !== key) { bestDraft = newBest(p[2]); bestKey = key; dirty = false; }
-    html = renderBestForm(true);
-  } else if (p[0] === 'melhores') {
-    html = renderBest(); tab = 'melhores';
-  } else if (p[0] === 'b' && store.list('melhor').find((b) => b.id === p[1])) {
+  } else if (p[0] === 'melhores' || p[0] === 'b') {
+    location.replace(p[0] === 'b' ? `#/c/${p[1]}` : '#/cafes'); // endereços antigos
+    return;
+  } else if (p[0] === 'cafes' && p[1] === 'novo') {
+    if (bestKey !== key) { bestDraft = newCoffee(p[2]); bestKey = key; dirty = !!p[2]; }
+    html = renderCoffeeForm(true);
+  } else if (p[0] === 'cafes') {
+    html = renderCafes(); tab = 'cafes';
+  } else if (p[0] === 'c' && coffeeOf(p[1])) {
     if (bestKey !== key) {
-      const b = store.list('melhor').find((x) => x.id === p[1]);
-      bestDraft = { ...b, methods: [...bestMethods(b)], source: b.recipeId ? 'receita' : 'nome', q: '' };
+      const c = coffeeOf(p[1]);
+      bestDraft = {
+        status: 'casa', roastDate: '', qty: '', rating: 0, variety: '', where: '', why: '',
+        ...structuredClone(c), methods: [...bestMethods(c)], podium: { ...(c.podium || {}) },
+      };
       bestKey = key; dirty = false;
     }
-    html = renderBestForm(false);
+    html = renderCoffeeForm(false);
   } else if (p[0] === 'ajustes') {
     html = await renderSettings();
   } else {
@@ -757,7 +773,6 @@ async function render({ keepScroll = false } = {}) {
   app.innerHTML = html;
   renderTabs(tab);
   document.body.classList.toggle('has-tabs', !!tab);
-  enableDrag();
   window.scrollTo(0, keepScroll ? y : 0);
 }
 
@@ -769,16 +784,19 @@ app.addEventListener('input', (e) => {
   if (draft && t.dataset.pour) { draft.pours[t.dataset.pour][t.dataset.k] = t.value; dirty = true; updateLive(); }
   if (draft && t.dataset.step) { draft.steps[t.dataset.step][t.dataset.k] = t.value; dirty = true; }
   if (bestDraft && t.dataset.b) {
-    const k = t.dataset.b;
-    bestDraft[k] = t.type === 'checkbox' ? t.checked : t.value;
-    if (k !== 'q') dirty = true;
-    if (k === 'q') {
-      render({ keepScroll: true }).then(() => {
-        const q = app.querySelector('[data-b="q"]');
-        q?.focus(); q?.setSelectionRange(q.value.length, q.value.length);
-      });
-    }
+    bestDraft[t.dataset.b] = t.type === 'checkbox' ? t.checked : t.value;
+    dirty = true;
   }
+});
+
+// "Usar um café cadastrado" na receita: preenche nome, pontos, variedade e notas.
+app.addEventListener('change', (e) => {
+  const sel = e.target.closest('[data-use-coffee]');
+  if (!sel || !draft || !sel.value) return;
+  const c = coffeeOf(sel.value);
+  Object.assign(draft, { coffee: c.coffee, score: c.score || '', variety: c.variety || '', notes: c.why || draft.notes });
+  dirty = true;
+  render({ keepScroll: true });
 });
 
 app.addEventListener('focusout', (e) => {
@@ -878,31 +896,46 @@ app.addEventListener('click', async (e) => {
     saved(store.remove(r.id));
     toast('Receita apagada');
     location.replace(`#/m/${r.method}`);
-  } else if (act === 'source') {
-    bestDraft.source = el.dataset.v;
-    if (el.dataset.v === 'nome') bestDraft.recipeId = null;
-    render({ keepScroll: true });
-  } else if (act === 'pick') {
-    pickRecipe(store.get(el.dataset.id)); dirty = true;
-    render({ keepScroll: true });
   } else if (act === 'best-method') {
     const v = el.dataset.v;
     bestDraft.methods = bestDraft.methods.includes(v) ? bestDraft.methods.filter((x) => x !== v) : [...bestDraft.methods, v];
     dirty = true;
-    const on = bestDraft.methods.includes(v);
-    el.classList.toggle('on', on); el.setAttribute('aria-pressed', on);
+    render({ keepScroll: true });
   } else if (act === 'best-filter') {
     bestFilter = bestFilter === el.dataset.v ? '' : el.dataset.v;
     render({ keepScroll: true });
+  } else if (act === 'stock-filter') {
+    stockFilter = el.dataset.v;
+    render({ keepScroll: true });
+  } else if (act === 'podium') {
+    const c = coffeeOf(el.dataset.id);
+    const m = el.dataset.m;
+    const v = Number(el.dataset.v);
+    const pos = c.podium?.[m] === v ? 0 : v;
+    setPodium(c.id, m, pos);
+    toast(pos ? `${c.coffee}: ${MEDALS[pos]} na ${methodOf(m).name}` : `${c.coffee} saiu do pódio`);
+    render({ keepScroll: true });
+  } else if (act === 'draft-podium') {
+    const m = el.dataset.m;
+    const v = Number(el.dataset.v);
+    bestDraft.podium[m] = bestDraft.podium[m] === v ? 0 : v;
+    dirty = true;
+    render({ keepScroll: true });
+  } else if (act === 'cafe-status') {
+    bestDraft.status = el.dataset.v; dirty = true;
+    render({ keepScroll: true });
+  } else if (act === 'cafe-rate') {
+    const v = Number(el.dataset.v);
+    bestDraft.rating = bestDraft.rating === v ? 0 : v; dirty = true;
+    render({ keepScroll: true });
   } else if (act === 'save-best') {
-    saveBest();
+    saveCoffee();
   } else if (act === 'del-best') {
-    if (!(await confirmSheet('Tirar dos melhores?', `“${bestDraft.coffee}” sai do ranking. A receita, se houver, continua salva.`, 'Tirar'))) return;
+    if (!(await confirmSheet('Excluir café?', `“${bestDraft.coffee}” sai da lista de cafés nos dois celulares. As receitas continuam salvas.`, 'Excluir'))) return;
     saved(store.remove(bestDraft.id));
-    const rest = best();
-    saved(store.put('melhor', ...rest.map((b, i) => ({ ...b, rank: i + 1 }))));
     dirty = false;
-    location.replace('#/melhores');
+    toast('Café excluído');
+    location.replace('#/cafes');
   } else if (act === 'logout') {
     await store.signOut();
     mode = 'login';
