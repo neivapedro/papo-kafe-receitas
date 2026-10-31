@@ -29,6 +29,7 @@ let items = read(KEY, {});
 let pending = new Set(read(PENDING_KEY, []));
 let client = null;
 let listener = () => {};
+let pulled = false; // já trouxe as receitas da conta nesta abertura?
 
 const persist = () => write(KEY, items) && write(PENDING_KEY, [...pending]);
 
@@ -98,7 +99,10 @@ function personOf(user) {
 
 async function startSync() {
   await flush();
-  if (await pull()) listener();
+  const changed = await pull();
+  const first = !pulled;
+  pulled = true;
+  if (changed || first) listener();
   await flush();
   subscribe();
 }
@@ -175,6 +179,9 @@ export const store = {
   },
 
   pendingCount: () => pending.size,
+
+  // Primeira abertura com a conta online e nada guardado no aparelho ainda: a tela mostra "carregando".
+  loading: () => cloudEnabled && !!client && !pulled && Object.keys(items).length === 0,
 
   // Nome de quem entrou, tirado do e-mail do login (veja PEOPLE em config.js).
   me: () => read(ME_KEY, null),

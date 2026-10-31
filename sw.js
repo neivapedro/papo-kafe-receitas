@@ -1,6 +1,6 @@
 // Funciona sem internet: com rede, sempre busca a versão mais nova do app;
 // sem rede, usa a cópia guardada no aparelho.
-const CACHE = 'papo-kafe-receitas-v8';
+const CACHE = 'papo-kafe-receitas-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -11,6 +11,7 @@ const ASSETS = [
   './js/vendor/supabase.js',
   './manifest.webmanifest',
   './img/logo.png',
+  './img/logo-escuro.png',
   './img/grao.png',
   './icons/icon-192.png',
   './icons/icon-512.png',

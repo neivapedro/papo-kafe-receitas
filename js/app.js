@@ -80,7 +80,7 @@ const METHODS = [
 ];
 const methodOf = (id) => METHODS.find((m) => m.id === id);
 
-/* ---------- ícones ---------- */
+/* ---------- ícones (traço de 1,5, mesma grade de 24) ---------- */
 
 const ICON = {
   v60: '<path d="M3 6h18l-6 10H9z"/><path d="M6 19h12M10 16v3M14 16v3"/>',
@@ -93,14 +93,23 @@ const ICON = {
   temp: '<path d="M12 3v11"/><circle cx="12" cy="17.5" r="3.5"/><path d="M12 6h3M12 9h2"/>',
   clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/>',
   bag: '<path d="M7 3h10l1.5 5v13h-13V8z"/><path d="M5.5 8h13M10 3l-1 5M14 3l1 5"/><path d="M10 13c1-1.5 3-1.5 4 0"/>',
-  medal: '<path d="M8 2l2.5 6M16 2l-2.5 6"/><circle cx="12" cy="14.5" r="6"/><path d="M12 11.5l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/>',
-  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M2.5 12h3M18.5 12h3M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"/>',
-  grip: '<path d="M7 7h10M7 12h10M7 17h10"/>',
+  star: '<path d="M12 3.3l2.6 5.5 6 .8-4.4 4.1 1.1 6-5.3-2.9-5.3 2.9 1.1-6-4.4-4.1 6-.8z"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+  chev: '<path d="M15 5l-7 7 7 7"/>',
+  copy: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  again: '<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>',
+  thumb: '<path d="M7 11v9H4v-9z"/><path d="M7 11l4-7a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.3 20H7"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
 };
 const svg = (k, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 const grains = (n, cls = '') => Array.from({ length: 5 }, (_, i) =>
   `<i class="grain ${cls} ${i < n ? '' : 'off'}"></i>`).join('');
+const logo = (cls) => `
+  <picture>
+    <source srcset="img/logo-escuro.png" media="(prefers-color-scheme: dark)">
+    <img class="${cls}" src="img/logo.png" alt="Papo Kafé" width="900" height="378">
+  </picture>`;
 
 /* ---------- utilidades ---------- */
 
@@ -135,14 +144,18 @@ function fmtTime(v, short) {
 }
 
 const initialOf = (name) => PEOPLE.find((p) => p.name === name)?.initial || (name || '?').slice(0, 1).toUpperCase();
-const byBubble = (name) => (name
-  ? `<span class="by p${Math.max(0, PEOPLE.findIndex((p) => p.name === name))}" title="Cadastrada por ${esc(name)}">${esc(initialOf(name))}</span>` : '');
+const byBubble = (name, big = false) => (name
+  ? `<span class="by p${Math.max(0, PEOPLE.findIndex((p) => p.name === name))}${big ? ' big' : ''}" title="Cadastrada por ${esc(name)}">${esc(initialOf(name))}</span>` : '');
 
 function toast(msg) {
   toastEl.textContent = msg;
   toastEl.hidden = false;
+  requestAnimationFrame(() => toastEl.classList.add('show'));
   clearTimeout(toast.t);
-  toast.t = setTimeout(() => { toastEl.hidden = true; }, 2200);
+  toast.t = setTimeout(() => {
+    toastEl.classList.remove('show');
+    toast.t = setTimeout(() => { toastEl.hidden = true; }, 220);
+  }, 2200);
 }
 
 function saved(ok) {
@@ -162,6 +175,7 @@ function confirmSheet(title, text, label) {
     wrap.innerHTML = `
       <div class="sheet-bg" data-r="no"></div>
       <div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+        <span class="sheet-grab" aria-hidden="true"></span>
         <h2>${esc(title)}</h2>
         <p>${esc(text)}</p>
         <div class="sheet-actions">
@@ -170,6 +184,7 @@ function confirmSheet(title, text, label) {
         </div>
       </div>`;
     document.body.append(wrap);
+    wrap.querySelector('.btn.ghost').focus();
     wrap.addEventListener('click', (e) => {
       const b = e.target.closest('[data-r]');
       if (!b) return;
@@ -181,37 +196,61 @@ function confirmSheet(title, text, label) {
 
 /* ---------- pedaços de tela ---------- */
 
-function bar(title, { back, icon, action } = {}) {
+// Telas de aba (root) têm título grande que encolhe para a barra ao rolar;
+// telas internas têm barra compacta com voltar, título central e ação.
+function bar(title, { back, icon, action, root } = {}) {
   return `
-    <header class="bar">
-      ${back ? `<button class="back" data-act="back" data-to="${esc(back)}" aria-label="Voltar">‹</button>` : ''}
-      <h1>${icon ? svg(icon) : ''}<span>${esc(title)}</span></h1>
-      ${action || ''}
-    </header>`;
+    <header class="bar ${root ? 'root' : ''}">
+      <div class="bar-side">${back ? `<button class="iconbtn back" data-act="back" data-to="${esc(back)}" aria-label="Voltar">${svg('chev')}</button>` : ''}</div>
+      <h1 class="bar-title">${icon ? svg(icon) : ''}<span>${esc(title)}</span></h1>
+      <div class="bar-side end">${action || ''}</div>
+    </header>
+    ${root ? `<h1 class="large-title">${esc(title)}</h1>` : ''}`;
 }
 
+function starBtn(r, big = false) {
+  return `<button class="star ${r.fav ? 'on' : ''} ${big ? 'big' : ''}" data-act="fav" data-id="${r.id}" aria-label="${r.fav ? 'Tirar das favoritas' : 'Marcar como favorita'}" aria-pressed="${!!r.fav}">${svg('star')}</button>`;
+}
+
+function emptyState({ icon, title, text = '', primary = '', secondary = '' }) {
+  return `
+    <div class="empty">
+      <span class="empty-ic">${icon}</span>
+      <h2>${esc(title)}</h2>
+      ${text ? `<p>${esc(text)}</p>` : ''}
+      ${primary || secondary ? `<div class="empty-actions">${primary}${secondary}</div>` : ''}
+    </div>`;
+}
+
+const skeletonCards = (n = 3) => Array.from({ length: n }, () => `
+  <div class="card skel-card" aria-hidden="true">
+    <div class="card-main"><span class="skel w60"></span><span class="skel w40"></span><span class="skel w80"></span></div>
+  </div>`).join('');
+
 function recipeCard(r) {
-  const meta = [r.dose && `${r.dose} g`, r.grind, r.water && `${r.water} g`, r.temp && `${r.temp} °C`, ratio(r)].filter(Boolean).join(' · ');
+  const meta = [r.dose && `${r.dose} g`, r.grind, r.water && `${r.water} g`, r.temp && `${r.temp} °C`].filter(Boolean).map(esc);
+  const rt = ratio(r);
+  if (rt) meta.push(`<b>${rt}</b>`);
   return `
     <article class="card" data-act="open" data-id="${r.id}">
       <div class="card-main">
-        <div class="card-name">${byBubble(r.by)}<span>${esc(r.coffee)}</span>${r.score ? `<span class="pts">${esc(r.score)} pts</span>` : ''}</div>
-        ${r.variety ? `<div class="variety">${svg('bean')}${esc(r.variety)}</div>` : ''}
-        ${meta ? `<div class="meta">${esc(meta)}</div>` : ''}
-        ${r.rating ? `<div class="rate">${grains(r.rating)}</div>` : ''}
+        <div class="card-top"><h3 class="card-name">${esc(r.coffee)}</h3>${r.score ? `<span class="pts">${esc(r.score)} pts</span>` : ''}</div>
+        ${r.variety ? `<div class="card-sub"><span class="variety">${svg('bean')}${esc(r.variety)}</span></div>` : ''}
+        ${meta.length ? `<div class="meta">${meta.join(' · ')}</div>` : ''}
+        ${r.rating || r.by ? `<div class="card-foot"><span class="rate">${r.rating ? grains(r.rating) : ''}</span>${byBubble(r.by)}</div>` : ''}
       </div>
-      <button class="star ${r.fav ? 'on' : ''}" data-act="fav" data-id="${r.id}" aria-label="${r.fav ? 'Tirar das favoritas' : 'Marcar como favorita'}" aria-pressed="${!!r.fav}">${r.fav ? '★' : '☆'}</button>
+      ${starBtn(r)}
     </article>`;
 }
 
 function renderTabs(active) {
   if (!active) { tabsEl.hidden = true; return; }
   const t = (key, href, icon, label) =>
-    `<a href="${href}" class="${active === key ? 'on' : ''}"${active === key ? ' aria-current="page"' : ''}>${icon}<span>${label}</span></a>`;
-  tabsEl.innerHTML =
-    t('metodos', '#/', '<i class="grain"></i>', 'Métodos') +
-    t('favoritas', '#/favoritas', `<span class="s">${active === 'favoritas' ? '★' : '☆'}</span>`, 'Favoritas') +
-    t('cafes', '#/cafes', svg('bag'), 'Cafés');
+    `<a href="${href}" class="${active === key ? 'on' : ''}"${active === key ? ' aria-current="page"' : ''}><span class="ti">${icon}</span><span>${label}</span></a>`;
+  tabsEl.innerHTML = `<div class="tabs-in">${
+    t('metodos', '#/', active === 'metodos' ? '<i class="grain"></i>' : svg('bean'), 'Métodos')
+  }${t('favoritas', '#/favoritas', svg('star'), 'Favoritas')
+  }${t('cafes', '#/cafes', svg('bag'), 'Cafés')}</div>`;
   tabsEl.hidden = false;
 }
 
@@ -219,14 +258,18 @@ function renderTabs(active) {
 
 function renderHome() {
   const all = recipes();
+  const me = store.me();
+  const loading = store.loading();
   return `
     <section class="home">
-      <a class="gear" href="#/ajustes" aria-label="Ajustes">${svg('gear')}</a>
-      <div class="hero"><img src="img/logo.png" alt="Papo Kafé" width="900" height="378"><small>Receitas</small></div>
+      <a class="iconbtn avatar" href="#/ajustes" aria-label="Ajustes">${me ? byBubble(me, true) : svg('gear')}</a>
+      <div class="hero">${logo('hero-logo')}<small>Receitas</small></div>
       <div class="methods">
         ${METHODS.map((m) => {
           const n = all.filter((r) => r.method === m.id).length;
-          return `<a class="method" href="#/m/${m.id}">${svg(m.id)}<b>${esc(m.name)}</b><small>${n === 0 ? 'nenhuma ainda' : n === 1 ? '1 receita' : `${n} receitas`}</small></a>`;
+          const count = loading ? '<span class="skel w60"></span>'
+            : n === 0 ? 'Começar' : `<strong>${n}</strong> ${n === 1 ? 'receita' : 'receitas'}`;
+          return `<a class="method ${!loading && n === 0 ? 'is-empty' : ''}" href="#/m/${m.id}"><span class="m-ic">${svg(m.id)}</span><b>${esc(m.name)}</b><small>${count}</small></a>`;
         }).join('')}
       </div>
     </section>`;
@@ -234,26 +277,30 @@ function renderHome() {
 
 function renderList(m) {
   const list = recipesOf(m.id);
+  const body = list.length ? list.map(recipeCard).join('')
+    : store.loading() ? skeletonCards()
+      : emptyState({
+        icon: svg(m.id),
+        title: `Nenhuma receita de ${m.name} ainda`,
+        text: 'Comece do zero ou a partir da receita de referência deste método.',
+        primary: `<a class="btn primary" href="#/m/${m.id}/nova">${svg('plus')}Nova receita</a>`,
+        secondary: `<a class="btn secondary" href="#/m/${m.id}/referencia">Usar receita de referência</a>`,
+      });
   return `
     ${bar(m.name, { back: '#/', icon: m.id })}
     <section class="content">
-      ${list.length ? list.map(recipeCard).join('') : `
-        <div class="empty">
-          <p>Nenhuma receita de ${esc(m.name)} ainda.</p>
-          <a class="link" href="#/m/${m.id}/referencia">Começar pela receita de referência</a>
-        </div>`}
-      <a class="fab" href="#/m/${m.id}/nova">+ Nova receita de ${esc(m.name)}</a>
+      <div class="list">${body}</div>
+      ${list.length ? `<a class="btn primary block" href="#/m/${m.id}/nova">${svg('plus')}Nova receita de ${esc(m.name)}</a>` : ''}
     </section>`;
 }
 
-function tag(icon, k, v, cls = '') {
-  return v ? `<div class="tag ${cls}"><span class="k">${icon ? svg(icon) : ''}${k}</span><span class="v">${esc(v)}</span></div>` : '';
+function tag(icon, k, v, cls = '', sub = '') {
+  return v ? `<div class="tag ${cls}"><span class="k">${icon ? svg(icon) : ''}${k}</span><span class="v">${esc(v)}</span>${sub ? `<span class="v-sub">${esc(sub)}</span>` : ''}</div>` : '';
 }
 
 function renderRecipe(r) {
   const m = methodOf(r.method);
   const inBest = coffees().find((b) => b.recipeId === r.id);
-  const grind = [r.grind, r.clicks && `${r.clicks} cl.`].filter(Boolean).join(' · ');
   let prev = 0;
   const pours = (r.pours || []).filter((p) => p.t || p.g).map((p) => {
     const g = num(p.g);
@@ -267,32 +314,32 @@ function renderRecipe(r) {
     ${bar(m.name, { back: `#/m/${m.id}`, icon: m.id, action: `<a class="act" href="#/r/${r.id}/editar">Editar</a>` })}
     <section class="view">
       <div class="vh">
-        <div>
+        <div class="vh-text">
           <h2 class="name">${esc(r.coffee)}</h2>
-          <div class="score">${r.score ? `${esc(r.score)} pts` : ''}${r.rating ? `<span class="rate">${grains(r.rating)}</span>` : ''}</div>
+          <div class="score">${r.score ? `<span>${esc(r.score)} pts</span>` : ''}${r.rating ? `<span class="rate">${grains(r.rating)}</span>` : ''}</div>
         </div>
-        <button class="star big ${r.fav ? 'on' : ''}" data-act="fav" data-id="${r.id}" aria-label="${r.fav ? 'Tirar das favoritas' : 'Marcar como favorita'}" aria-pressed="${!!r.fav}">${r.fav ? '★' : '☆'}</button>
+        ${starBtn(r, true)}
       </div>
       ${r.variety ? `<div class="variety big">${svg('bean')}${esc(r.variety)}</div>` : ''}
       ${r.notes ? `<p class="sens">${esc(r.notes)}</p>` : ''}
-      <h3 class="vsec">Receita</h3>
+      <h3 class="sec">Receita</h3>
       <div class="tags">
         ${tag('bean', 'Café', r.dose && `${r.dose} g`)}
         ${tag('drop', m.waterLabel || 'Água', r.water && `${r.water} g`)}
         ${tag('', 'Proporção', ratio(r), 'ratio')}
-        ${tag('grind', 'Moagem', grind)}
+        ${tag('grind', 'Moagem', r.grind || (r.clicks ? '—' : ''), '', r.clicks ? `${r.clicks} cliques` : '')}
         ${tag('temp', 'Temp.', r.temp && `${r.temp} °C`)}
         ${tag('clock', 'Tempo', timeRange(r))}
       </div>
-      ${pours ? `<h3 class="vsec">Despejos</h3><div class="vsteps">${pours}</div>` : ''}
-      ${steps ? `<h3 class="vsec">Passo a passo</h3><div class="vsteps">${steps}</div>` : ''}
+      ${pours ? `<h3 class="sec">Despejos</h3><div class="vsteps">${pours}</div>` : ''}
+      ${steps ? `<h3 class="sec">Passo a passo</h3><div class="vsteps">${steps}</div>` : ''}
       ${r.obs ? `<div class="note"><b>Observação</b>${esc(r.obs)}</div>` : ''}
-      <div class="vact">
-        <a href="#/r/${r.id}/duplicar">Duplicar</a>
-        ${inBest ? `<a href="#/c/${inBest.id}">${svg('bag')} Ver em Cafés</a>` : `<a href="#/cafes/novo/${r.id}">✚ Cafés</a>`}
-        <button data-act="del-recipe" data-id="${r.id}">Apagar</button>
+      <div class="actions">
+        <a class="btn secondary" href="#/r/${r.id}/duplicar">${svg('copy')}Duplicar</a>
+        ${inBest ? `<a class="btn secondary" href="#/c/${inBest.id}">${svg('bag')}Ver em Cafés</a>` : `<a class="btn secondary" href="#/cafes/novo/${r.id}">${svg('plus')}Cafés</a>`}
       </div>
-      <p class="by-line">${r.by ? `${byBubble(r.by)} cadastrada por ${esc(r.by)} · ` : ''}${fmtDate(r.createdAt)}</p>
+      <p class="by-line">${r.by ? `${byBubble(r.by)} Cadastrada por ${esc(r.by)} · ` : ''}${fmtDate(r.createdAt)}</p>
+      <button class="btn-text danger mid" data-act="del-recipe" data-id="${r.id}">Apagar receita</button>
     </section>`;
 }
 
@@ -310,10 +357,13 @@ function newDraft(m, base) {
   };
 }
 
-function inp(field, { ph = '', mode = 'text', time = '', cls = '' } = {}) {
+function inp(field, { ph = '', mode = 'text', time = '' } = {}) {
   const list = field === 'variety' ? ' list="variedades"' : '';
-  return `<input class="in ${cls}" data-f="${field}" value="${esc(draft[field] ?? '')}" placeholder="${esc(ph)}" inputmode="${mode}" autocomplete="off"${list}${time ? ` data-time="${time}"` : ''}>`;
+  return `<input class="in" data-f="${field}" value="${esc(draft[field] ?? '')}" placeholder="${esc(ph)}" inputmode="${mode}" autocomplete="off"${list}${time ? ` data-time="${time}"` : ''}>`;
 }
+
+// Campo com a unidade dentro, à direita (g, °C, cliques…): todas as bordas alinhadas.
+const affix = (input, sfx, long = false) => `<span class="affix ${long ? 'long' : ''}">${input}<span class="sfx" aria-hidden="true">${sfx}</span></span>`;
 
 function varietyList() {
   const used = [...recipes(), ...store.list('melhor')].map((x) => (x.variety || '').trim()).filter(Boolean);
@@ -332,12 +382,28 @@ function pourHints() {
   });
 }
 
+const waterCheck = () => {
+  const last = num(draft.pours?.at(-1)?.g); const water = num(draft.water);
+  if (last == null || water == null) return '';
+  return last === water ? '✓ bate com a água' : `faltam ${fmtNum(water - last)} g`;
+};
+
+// Moagem como régua de 5 pontos (fina → grossa); as opções são as mesmas de sempre.
+function grindScale() {
+  return `
+    <div class="scale" role="radiogroup" aria-label="Moagem">
+      <div class="scale-track">
+        ${GRINDS.map((g) => `<button type="button" role="radio" aria-checked="${draft.grind === g}" aria-label="${g}" class="dot ${draft.grind === g ? 'on' : ''}" data-act="grind" data-v="${g}"><i></i></button>`).join('')}
+      </div>
+      <div class="scale-ends"><span>Fina</span><b data-live="grind">${esc(draft.grind || 'Toque para escolher')}</b><span>Grossa</span></div>
+    </div>`;
+}
+
 function renderForm(m, title) {
   const ref = m.ref;
   const sec = m.seconds;
   const hints = m.pours ? pourHints() : [];
-  const last = m.pours ? num(draft.pours.at(-1)?.g) : null;
-  const water = num(draft.water);
+  const tmode = sec ? 'decimal' : 'numeric';
   return `
     ${bar(title, { back: 'back', icon: m.id, action: '<button class="act" data-act="save">Salvar</button>' })}
     <form class="content form" autocomplete="off" novalidate>
@@ -352,50 +418,49 @@ function renderForm(m, title) {
         <label class="field"><span class="lbl">Café</span>${inp('coffee', { ph: ref.coffee || 'Nome do café' })}</label>
         <label class="field"><span class="lbl">Pontos</span>${inp('score', { ph: '84', mode: 'decimal' })}</label>
       </div>
-      <label class="field"><span class="lbl">Variedade</span>${inp('variety', { ph: 'Catuaí Amarelo', cls: 'variety-in' })}</label>
+      <label class="field"><span class="lbl">Variedade</span>${inp('variety', { ph: 'Catuaí Amarelo' })}</label>
       ${varietyList()}
       <label class="field"><span class="lbl">Notas sensoriais</span>
         <textarea class="in" data-f="notes" rows="2" placeholder="Chocolate ao leite, fava de baunilha e mel">${esc(draft.notes)}</textarea></label>
 
       <h2 class="sec">Receita</h2>
-      <label class="param">${svg('bean')}<span class="lbl">Café</span><span class="unit">${inp('dose', { ph: ref.dose, mode: 'decimal' })}<span>g</span></span></label>
-      <div class="param top">${svg('grind')}<span class="lbl">Moagem</span>
-        <div class="field">
-          <div class="seg" role="radiogroup" aria-label="Moagem">
-            ${GRINDS.map((g) => `<button type="button" role="radio" aria-checked="${draft.grind === g}" class="${draft.grind === g ? 'on' : ''}" data-act="grind" data-v="${g}">${g}</button>`).join('')}
-          </div>
-          <span class="unit">${inp('clicks', { ph: '18', mode: 'decimal' })}<span>cliques</span></span>
-        </div>
+      <div class="row3">
+        <label class="field"><span class="lbl">${svg('bean')}Café</span>${affix(inp('dose', { ph: ref.dose, mode: 'decimal' }), 'g')}</label>
+        <label class="field"><span class="lbl">${svg('drop')}${m.waterLabel || 'Água'}</span>${affix(inp('water', { ph: ref.water, mode: 'decimal' }), 'g')}</label>
+        <label class="field"><span class="lbl">${svg('temp')}Temp.</span>${affix(inp('temp', { ph: ref.temp, mode: 'decimal' }), '°C')}</label>
       </div>
-      <label class="param">${svg('drop')}<span class="lbl">${m.waterLabel || 'Água'}</span><span class="unit">${inp('water', { ph: ref.water, mode: 'decimal' })}<span>g</span></span></label>
-      <label class="param">${svg('temp')}<span class="lbl">Temp.</span><span class="unit">${inp('temp', { ph: ref.temp, mode: 'decimal' })}<span>°C</span></span></label>
-      <div class="param">${svg('clock')}<span class="lbl">Tempo</span>
-        <span class="unit">${inp('tmin', { ph: ref.tmin, mode: sec ? 'decimal' : 'numeric', time: sec ? '' : 'm' })}<span>a</span>${inp('tmax', { ph: ref.tmax || 'opcional', mode: sec ? 'decimal' : 'numeric', time: sec ? '' : 'm' })}<span>${sec ? 's' : 'min'}</span></span>
+      <div class="field"><span class="lbl">${svg('grind')}Moagem</span>${grindScale()}</div>
+      <div class="row2">
+        <label class="field"><span class="lbl">Cliques do moedor</span>${affix(inp('clicks', { ph: '18', mode: 'decimal' }), 'cliques', true)}</label>
+        <div class="field"><span class="lbl">Proporção</span><span class="calc" data-live="ratio">${ratio(draft) || '—'}</span></div>
       </div>
-      <div class="calc"><span>Proporção</span><b data-live="ratio">${ratio(draft) || '—'}</b></div>
+      <div class="row2">
+        <label class="field"><span class="lbl">${svg('clock')}Tempo total</span>${affix(inp('tmin', { ph: ref.tmin, mode: tmode, time: sec ? '' : 'm' }), sec ? 's' : 'min', !sec)}</label>
+        <label class="field"><span class="lbl">Até (opcional)</span>${affix(inp('tmax', { ph: ref.tmax || '', mode: tmode, time: sec ? '' : 'm' }), sec ? 's' : 'min', !sec)}</label>
+      </div>
 
       ${m.pours ? `
         <h2 class="sec">Despejos</h2>
-        <div class="pour head"><span class="lbl">Tempo</span><span class="lbl">Balança</span><span class="lbl">Despejo</span><span></span></div>
+        <div class="pour head" aria-hidden="true"><span class="lbl">Tempo</span><span class="lbl">Balança</span><span class="lbl">Despejo</span><span></span></div>
         ${draft.pours.map((p, i) => `
           <div class="pour">
-            <input class="in" data-pour="${i}" data-k="t" value="${esc(p.t)}" placeholder="${esc(ref.pours[i]?.t || '')}" inputmode="numeric" data-time="s">
-            <span class="unit"><input class="in" data-pour="${i}" data-k="g" value="${esc(p.g)}" placeholder="${esc(ref.pours[i]?.g || '')}" inputmode="decimal"><span>g</span></span>
+            <input class="in" data-pour="${i}" data-k="t" value="${esc(p.t)}" placeholder="${esc(ref.pours[i]?.t || '')}" inputmode="numeric" data-time="s" aria-label="Tempo do despejo ${i + 1}">
+            ${affix(`<input class="in" data-pour="${i}" data-k="g" value="${esc(p.g)}" placeholder="${esc(ref.pours[i]?.g || '')}" inputmode="decimal" aria-label="Balança no despejo ${i + 1}">`, 'g')}
             <span class="d" data-live="d${i}">${hints[i] || ''}</span>
-            <button type="button" class="rm" data-act="rm-pour" data-i="${i}" aria-label="Remover despejo">${svg('x')}</button>
+            <button type="button" class="iconbtn rm" data-act="rm-pour" data-i="${i}" aria-label="Remover despejo ${i + 1}">${svg('x')}</button>
           </div>`).join('')}
         <div class="pour-foot">
-          <button type="button" class="addline" data-act="add-pour">+ despejo</button>
-          <span class="check-water" data-live="check">${last != null && water != null ? (last === water ? '✓ bate com a água' : `faltam ${fmtNum(water - last)} g`) : ''}</span>
+          <button type="button" class="addline" data-act="add-pour">${svg('plus')}Despejo</button>
+          <span class="check-water" data-live="check">${waterCheck()}</span>
         </div>` : `
         <h2 class="sec">Passo a passo</h2>
         ${draft.steps.map((s, i) => `
           <div class="step-row">
-            <input class="in" data-step="${i}" data-k="t" value="${esc(s.t)}" placeholder="${esc(ref.steps[i]?.t || '')}">
-            <textarea class="in" data-step="${i}" data-k="x" rows="2" placeholder="${esc(ref.steps[i]?.x || 'O que fazer')}">${esc(s.x)}</textarea>
-            <button type="button" class="rm" data-act="rm-step" data-i="${i}" aria-label="Remover passo">${svg('x')}</button>
+            <input class="in" data-step="${i}" data-k="t" value="${esc(s.t)}" placeholder="${esc(ref.steps[i]?.t || '')}" aria-label="Tempo do passo ${i + 1}">
+            <textarea class="in" data-step="${i}" data-k="x" rows="2" placeholder="${esc(ref.steps[i]?.x || 'O que fazer')}" aria-label="O que fazer no passo ${i + 1}">${esc(s.x)}</textarea>
+            <button type="button" class="iconbtn rm" data-act="rm-step" data-i="${i}" aria-label="Remover passo ${i + 1}">${svg('x')}</button>
           </div>`).join('')}
-        <button type="button" class="addline" data-act="add-step">+ passo</button>`}
+        <button type="button" class="addline" data-act="add-step">${svg('plus')}Passo</button>`}
 
       <h2 class="sec">Depois de provar</h2>
       <div class="field"><span class="lbl">Minha nota</span>
@@ -405,8 +470,8 @@ function renderForm(m, title) {
       </div>
       <label class="field"><span class="lbl">Observação</span>
         <textarea class="in" data-f="obs" rows="3" placeholder="${esc(ref.obs || 'Ex.: ficou doce; da próxima vez, 1 clique mais fino')}">${esc(draft.obs)}</textarea></label>
-      <button type="button" class="favrow" data-act="draft-fav" aria-pressed="${draft.fav}"><span>Favorita</span><span class="star ${draft.fav ? 'on' : ''}">${draft.fav ? '★' : '☆'}</span></button>
-      <button type="button" class="fab" data-act="save">Salvar receita</button>
+      <button type="button" class="favrow" data-act="draft-fav" aria-pressed="${draft.fav}"><span>Favorita</span><span class="star ${draft.fav ? 'on' : ''}">${svg('star')}</span></button>
+      <div class="savebar"><button type="button" class="btn primary block" data-act="save">Salvar receita</button></div>
     </form>`;
 }
 
@@ -420,8 +485,7 @@ function updateLive() {
     if (el) el.textContent = h;
   });
   const c = app.querySelector('[data-live="check"]');
-  const last = num(draft.pours.at(-1)?.g); const water = num(draft.water);
-  if (c) c.textContent = last != null && water != null ? (last === water ? '✓ bate com a água' : `faltam ${fmtNum(water - last)} g`) : '';
+  if (c) c.textContent = waterCheck();
 }
 
 function saveDraft() {
@@ -445,14 +509,19 @@ function renderFavs() {
   const favs = recipes().filter((r) => r.fav);
   const groups = METHODS.map((m) => ({ m, list: favs.filter((r) => r.method === m.id).sort((a, b) => b.createdAt - a.createdAt) }))
     .filter((g) => g.list.length);
+  const body = groups.length ? groups.map(({ m, list }) => `
+      <h2 class="grp">${svg(m.id)}${esc(m.name)}</h2>
+      <div class="list">${list.map(recipeCard).join('')}</div>`).join('')
+    : store.loading() ? `<div class="list">${skeletonCards()}</div>`
+      : emptyState({
+        icon: svg('star'),
+        title: 'Nenhuma favorita ainda',
+        text: 'Toque na estrela de uma receita e ela aparece aqui, junto com as favoritas dos outros métodos.',
+        primary: '<a class="btn secondary" href="#/">Ver métodos</a>',
+      });
   return `
-    ${bar('Favoritas')}
-    <section class="content">
-      ${groups.length ? groups.map(({ m, list }) => `
-        <h2 class="grp">${svg(m.id)}${esc(m.name)}</h2>
-        ${list.map(recipeCard).join('')}`).join('') : `
-        <div class="empty"><p>Nenhuma favorita ainda. Toque na ☆ de uma receita para ela aparecer aqui.</p></div>`}
-    </section>`;
+    ${bar('Favoritas', { root: true })}
+    <section class="content">${body}</section>`;
 }
 
 /* ---------- cafés: o que temos (ou tivemos) em casa e o pódio de cada método ---------- */
@@ -521,7 +590,8 @@ function setPodium(id, method, pos) {
 
 function podiumButtons(c, method, act) {
   const cur = act === 'draft-podium' ? (bestDraft.podium[method] || 0) : (c.podium?.[method] || 0);
-  return [1, 2, 3].map((p) => `<button type="button" class="medal-btn p${p} ${cur === p ? 'on' : ''}" data-act="${act}" data-id="${c.id}" data-m="${method}" data-v="${p}" aria-pressed="${cur === p}">${MEDALS[p]}</button>`).join('');
+  const m = methodOf(method);
+  return [1, 2, 3].map((p) => `<button type="button" class="medal-btn p${p} ${cur === p ? 'on' : ''}" data-act="${act}" data-id="${c.id}" data-m="${method}" data-v="${p}" aria-pressed="${cur === p}" aria-label="${p}º lugar na ${esc(m.name)}">${p}º</button>`).join('');
 }
 
 function renderCafes() {
@@ -533,49 +603,54 @@ function renderCafes() {
   list.sort((a, b) => rank(a) - rank(b) || a.createdAt - b.createdAt);
   const fm = methodOf(bestFilter);
   const count = (s) => all.filter((c) => !s || status(c) === s).length;
-  const stockChip = (v, label) => `<button type="button" class="mchip small ${stockFilter === v ? 'on' : ''}" data-act="stock-filter" data-v="${v}" aria-pressed="${stockFilter === v}">${label} <span class="cnt">${count(v)}</span></button>`;
+  const seg = (v, label) => `<button type="button" role="radio" aria-checked="${stockFilter === v}" class="${stockFilter === v ? 'on' : ''}" data-act="stock-filter" data-v="${v}">${label} <span class="cnt">${count(v)}</span></button>`;
+  const cards = list.map((c) => {
+    const ms = bestMethods(c).map(methodOf).filter(Boolean);
+    const medals = bestFilter ? '' : METHODS.filter((m) => c.podium?.[m.id])
+      .sort((a, b) => c.podium[a.id] - c.podium[b.id])
+      .map((m) => `<span class="medal p${c.podium[m.id]}">${MEDALS[c.podium[m.id]]} ${esc(m.name)}</span>`).join('');
+    return `
+      <li class="cafe ${status(c) === 'acabou' ? 'gone' : ''} ${bestFilter ? 'with-podium' : ''}" data-id="${c.id}">
+        <a class="cafe-body" href="#/c/${c.id}">
+          <span class="card-top"><span class="card-name">${esc(c.coffee)}</span>${c.score ? `<span class="pts">${esc(c.score)} pts</span>` : ''}</span>
+          ${c.variety || ms.length ? `<span class="card-sub">${c.variety ? `<span class="variety">${svg('bean')}${esc(c.variety)}</span>` : ''}${ms.length ? `<span class="m-icons" title="Indicado para ${esc(ms.map((m) => m.name).join(', '))}">${ms.map((m) => svg(m.id)).join('')}</span>` : ''}</span>` : ''}
+          ${c.why ? `<span class="clamp2">${esc(c.why)}</span>` : ''}
+          <span class="card-foot">
+            <span class="foot-l">${medals}<span class="stock ${status(c)}">${status(c) === 'casa' ? 'Em casa' : 'Acabou'}</span></span>
+            <span class="foot-r">
+              ${c.buyAgain ? `<span class="ok-ic" title="Compraria de novo">${svg('again')}</span>` : ''}
+              ${c.recommend ? `<span class="ok-ic" title="Indicaria">${svg('thumb')}</span>` : ''}
+              ${c.rating ? `<span class="rate">${grains(c.rating)}</span>` : ''}
+              ${byBubble(c.by)}
+            </span>
+          </span>
+        </a>
+        ${bestFilter ? `<div class="podium-inline" role="group" aria-label="Pódio ${esc(fm.name)}">${podiumButtons(c, bestFilter, 'podium')}</div>` : ''}
+      </li>`;
+  }).join('');
+  const body = list.length ? `<ol class="cafe-list">${cards}</ol>`
+    : store.loading() ? `<div class="list">${skeletonCards()}</div>`
+      : all.length ? emptyState({ icon: svg('bag'), title: 'Nenhum café com esse filtro', text: 'Troque o método ou o estoque escolhido acima.' })
+        : emptyState({
+          icon: svg('bag'),
+          title: 'Nenhum café cadastrado',
+          text: 'Cadastre aqui os cafés que vocês têm ou já tomaram, com ou sem receita.',
+          primary: `<a class="btn primary" href="#/cafes/novo">${svg('plus')}Adicionar café</a>`,
+        });
   return `
-    ${bar('Cafés', { icon: 'bag', action: '<a class="act" href="#/cafes/novo">+ Adicionar</a>' })}
+    ${bar('Cafés', { root: true, action: `<a class="iconbtn act-ic" href="#/cafes/novo" aria-label="Adicionar café">${svg('plus')}</a>` })}
     <section class="content">
       ${all.length ? `
-        <div class="mchips filter" role="group" aria-label="Filtrar por método">
-          <button type="button" class="mchip ${bestFilter ? '' : 'on'}" data-act="best-filter" data-v="" aria-pressed="${!bestFilter}">Todos</button>
-          ${methodChips(bestFilter ? [bestFilter] : [], 'best-filter')}
+        <div class="filter-row">
+          <div class="mchips filter" role="group" aria-label="Filtrar por método">
+            <button type="button" class="mchip ${bestFilter ? '' : 'on'}" data-act="best-filter" data-v="" aria-pressed="${!bestFilter}">Todos</button>
+            ${methodChips(bestFilter ? [bestFilter] : [], 'best-filter')}
+          </div>
         </div>
-        <div class="mchips" role="group" aria-label="Filtrar por estoque">
-          ${stockChip('', 'Todos')}${stockChip('casa', 'Em casa')}${stockChip('acabou', 'Acabaram')}
-        </div>` : ''}
-      ${list.length ? `
-        <ol class="best-list">
-          ${list.map((c) => {
-            const ms = bestMethods(c).map(methodOf).filter(Boolean);
-            const pos = bestFilter ? c.podium?.[bestFilter] || 0 : 0;
-            const medals = bestFilter ? '' : METHODS.filter((m) => c.podium?.[m.id])
-              .sort((a, b) => c.podium[a.id] - c.podium[b.id])
-              .map((m) => `<span class="medal p${c.podium[m.id]}">${MEDALS[c.podium[m.id]]} ${esc(m.name)}</span>`).join('');
-            return `
-              <li class="best ${status(c) === 'acabou' ? 'gone' : ''}" data-id="${c.id}">
-                <span class="pos">${pos ? `<span class="medal big p${pos}">${MEDALS[pos]}</span>` : ''}</span>
-                <a class="best-body" href="#/c/${c.id}">
-                  <span class="n">${byBubble(c.by)}<span>${esc(c.coffee)}</span>${c.score ? `<span class="pts">${esc(c.score)} pts</span>` : ''}</span>
-                  ${c.variety ? `<span class="variety">${svg('bean')}${esc(c.variety)}</span>` : ''}
-                  ${medals ? `<span class="flags">${medals}</span>` : ''}
-                  ${c.why ? `<span class="s">${esc(c.why)}</span>` : ''}
-                  ${ms.length ? `<span class="for">Indicado para ${ms.map((m) => `<span class="for-m">${svg(m.id)}${esc(m.name)}</span>`).join('')}</span>` : ''}
-                  <span class="flags">
-                    <span class="stock ${status(c)}">${status(c) === 'casa' ? 'em casa' : 'acabou'}</span>
-                    ${c.rating ? `<span class="rate">${grains(c.rating)}</span>` : ''}
-                    ${c.buyAgain ? '<span class="flag">compraria de novo</span>' : ''}
-                    ${c.recommend ? '<span class="flag">indicaria</span>' : ''}
-                  </span>
-                </a>
-                ${bestFilter ? `<div class="podium"><span class="lbl">Pódio ${esc(fm.name)}</span>${podiumButtons(c, bestFilter, 'podium')}</div>` : ''}
-              </li>`;
-          }).join('')}
-        </ol>
-        <p class="mini">${bestFilter ? `Toque em 1º, 2º ou 3º para montar o pódio da ${esc(fm.name)}. Quem estava na posição desce uma.` : 'Escolha um método acima para ver e montar o pódio dele.'}</p>` : `
-        <div class="empty"><p>${all.length ? 'Nenhum café com esse filtro.' : 'Cadastre aqui os cafés que vocês têm ou já tomaram, com ou sem receita.'}</p></div>`}
-      <a class="fab" href="#/cafes/novo">+ Adicionar café</a>
+        <div class="segctl" role="radiogroup" aria-label="Estoque">${seg('', 'Todos')}${seg('casa', 'Em casa')}${seg('acabou', 'Acabaram')}</div>
+        <p class="mini hint">${bestFilter ? `Pódio da ${esc(fm.name)}: toque em 1º, 2º ou 3º. Quem estava na posição desce uma.` : 'Escolha um método para ver e montar o pódio dele.'}</p>` : ''}
+      ${body}
+      ${list.length ? `<a class="btn primary block" href="#/cafes/novo">${svg('plus')}Adicionar café</a>` : ''}
     </section>`;
 }
 
@@ -607,7 +682,7 @@ function renderCoffeeForm(isNew) {
       <label class="field"><span class="lbl">Onde comprar (opcional)</span>${binp('where', 'Torrefação, loja, assinatura…')}</label>
 
       <h2 class="sec">Estoque</h2>
-      <div class="toggle" role="radiogroup" aria-label="Estoque">
+      <div class="segctl" role="radiogroup" aria-label="Estoque">
         <button type="button" role="radio" aria-checked="${b.status === 'casa'}" class="${b.status === 'casa' ? 'on' : ''}" data-act="cafe-status" data-v="casa">Em casa</button>
         <button type="button" role="radio" aria-checked="${b.status === 'acabou'}" class="${b.status === 'acabou' ? 'on' : ''}" data-act="cafe-status" data-v="acabou">Acabou</button>
       </div>
@@ -622,20 +697,22 @@ function renderCoffeeForm(isNew) {
           ${[1, 2, 3, 4, 5].map((n) => `<button type="button" role="radio" aria-checked="${b.rating === n}" aria-label="${n} de 5" data-act="cafe-rate" data-v="${n}"><i class="grain ${n <= b.rating ? '' : 'off'}"></i></button>`).join('')}
         </div>
       </div>
-      <label class="check"><input type="checkbox" data-b="buyAgain" ${b.buyAgain ? 'checked' : ''}><span>Compraria de novo</span></label>
-      <label class="check"><input type="checkbox" data-b="recommend" ${b.recommend ? 'checked' : ''}><span>Indicaria</span></label>
+      <div class="checks">
+        <label class="check"><input type="checkbox" data-b="buyAgain" ${b.buyAgain ? 'checked' : ''}><span>${svg('again')}Compraria de novo</span></label>
+        <label class="check"><input type="checkbox" data-b="recommend" ${b.recommend ? 'checked' : ''}><span>${svg('thumb')}Indicaria</span></label>
+      </div>
 
       <h2 class="sec">Indicado para</h2>
       <div class="mchips" role="group" aria-label="Indicado para">${methodChips(b.methods, 'best-method')}</div>
       ${b.methods.length ? `
         <div class="podium-rows">
           ${METHODS.filter((m) => b.methods.includes(m.id)).map((m) => `
-            <div class="podium"><span class="lbl">${svg(m.id)}Pódio ${esc(m.name)}</span>${podiumButtons(b, m.id, 'draft-podium')}</div>`).join('')}
+            <div class="podium-row"><span class="lbl">${svg(m.id)}Pódio ${esc(m.name)}</span><div class="podium-inline" role="group" aria-label="Pódio ${esc(m.name)}">${podiumButtons(b, m.id, 'draft-podium')}</div></div>`).join('')}
         </div>
         <p class="mini">Opcional. Se a posição já for de outro café, ele desce uma.</p>` : '<p class="mini">Marque os métodos em que este café vai bem. Pode ser mais de um.</p>'}
 
-      <button type="button" class="fab" data-act="save-best">Salvar</button>
-      ${isNew ? '' : '<button type="button" class="btn-text danger" data-act="del-best">Excluir café</button>'}
+      <div class="savebar"><button type="button" class="btn primary block" data-act="save-best">Salvar café</button></div>
+      ${isNew ? '' : '<button type="button" class="btn-text danger mid" data-act="del-best">Excluir café</button>'}
     </form>`;
 }
 
@@ -665,18 +742,18 @@ function saveCoffee() {
   location.replace('#/cafes');
 }
 
-/* ---------- ajustes, entrada e quem sou eu ---------- */
+/* ---------- ajustes e entrada ---------- */
 
 function renderLogin() {
   return `
     <section class="center">
-      <img class="logo-sm" src="img/logo.png" alt="Papo Kafé" width="900" height="378">
+      ${logo('logo-sm')}
       <h1>Entrar</h1>
       <form class="login" data-form="login" novalidate>
         <label class="field"><span class="lbl">E-mail</span><input class="in" name="email" type="email" autocomplete="username" inputmode="email" required></label>
         <label class="field"><span class="lbl">Senha</span><input class="in" name="password" type="password" autocomplete="current-password" required></label>
-        <p class="err" hidden></p>
-        <button class="fab" type="submit">Entrar</button>
+        <p class="err" role="alert" hidden></p>
+        <button class="btn primary block" type="submit">Entrar</button>
       </form>
     </section>`;
 }
@@ -684,16 +761,25 @@ function renderLogin() {
 async function renderSettings() {
   const email = mode === 'nuvem' ? await store.userEmail() : null;
   const pend = store.pendingCount();
+  const online = navigator.onLine;
+  const sync = mode !== 'nuvem'
+    ? { dot: 'off', t: cloudEnabled ? 'Sem conexão' : 'Só neste celular', s: cloudEnabled ? 'A sincronização volta sozinha quando houver internet.' : 'As receitas ficam salvas apenas neste aparelho.' }
+    : pend ? { dot: 'wait', t: online ? 'Sincronizando…' : 'Aguardando internet', s: `${pend} ${pend === 1 ? 'alteração' : 'alterações'} para enviar.` }
+      : { dot: 'ok', t: 'Tudo sincronizado', s: 'As receitas são as mesmas nos celulares do Pedro e da Karoline.' };
   return `
     ${bar('Ajustes', { back: '#/' })}
     <section class="content">
-      <h2 class="sec">Conta</h2>
-      ${mode === 'nuvem' ? `
-        <p>Conectado como <b>${esc(store.me() || '')}</b> (${esc(email || '')}). As receitas são as mesmas nos celulares do Pedro e da Karoline.</p>
-        ${pend ? `<p class="mini">${pend} alteração(ões) aguardando internet para sincronizar.</p>` : '<p class="mini">Tudo sincronizado.</p>'}
-        <button class="btn-text danger" data-act="logout">Sair da conta</button>` : `
-        <p>As receitas estão salvas só neste celular.</p>
-        <p class="mini">${cloudEnabled ? 'Sem internet no momento; a sincronização volta sozinha.' : 'Para o Pedro e a Karoline verem as mesmas receitas, falta ligar a conta online (veja o README do projeto).'}</p>`}
+      <h2 class="group-title">Conta</h2>
+      <div class="group">
+        ${mode === 'nuvem' ? `
+          <div class="cell">${byBubble(store.me(), true)}<div><b>${esc(store.me() || '')}</b><small>${esc(email || '')}</small></div></div>` : `
+          <div class="cell"><span class="cell-ic">${svg('gear')}</span><div><b>Conta online não configurada</b><small>Para o Pedro e a Karoline verem as mesmas receitas, a conta online precisa estar ligada.</small></div></div>`}
+      </div>
+      <h2 class="group-title">Sincronização</h2>
+      <div class="group">
+        <div class="cell"><i class="dot ${sync.dot}" aria-hidden="true"></i><div><b>${sync.t}</b><small>${sync.s}</small></div></div>
+      </div>
+      ${mode === 'nuvem' ? '<div class="group"><button class="cell danger" data-act="logout">Sair da conta</button></div>' : ''}
     </section>`;
 }
 
@@ -707,6 +793,14 @@ function route() {
 const isFormRoute = (p) => (p[0] === 'm' && (p[2] === 'nova' || p[2] === 'referencia'))
   || (p[0] === 'r' && (p[2] === 'editar' || p[2] === 'duplicar'))
   || (p[0] === 'cafes' && p[1] === 'novo') || p[0] === 'c';
+
+// Profundidade de cada tela: decide se a transição entra pela direita, volta ou só troca de aba.
+function depthOf(p) {
+  if (!p.length || p[0] === 'favoritas' || (p[0] === 'cafes' && !p[1])) return 0;
+  if (p[0] === 'm') return p[2] ? 2 : 1;
+  if (p[0] === 'r') return p[2] ? 3 : 2;
+  return 1; // ajustes, cafés/novo, c/:id
+}
 
 async function render({ keepScroll = false } = {}) {
   const y = window.scrollY;
@@ -771,10 +865,21 @@ async function render({ keepScroll = false } = {}) {
 
   if (!isFormRoute(p)) { draft = null; draftKey = null; bestDraft = null; bestKey = null; dirty = false; }
   app.innerHTML = html;
+  app.classList.toggle('wide', mode !== 'login' && (!p.length || (p[0] === 'cafes' && !p[1])));
   renderTabs(tab);
   document.body.classList.toggle('has-tabs', !!tab);
+  document.body.classList.toggle('has-savebar', !!app.querySelector('.savebar'));
   window.scrollTo(0, keepScroll ? y : 0);
+  onScroll();
 }
+
+/* ---------- barra que ganha linha ao rolar ---------- */
+
+function onScroll() {
+  document.body.classList.toggle('scrolled', window.scrollY > 4);
+  document.body.classList.toggle('past-title', window.scrollY > 44);
+}
+window.addEventListener('scroll', onScroll, { passive: true });
 
 /* ---------- eventos ---------- */
 
@@ -837,6 +942,9 @@ const goBack = async (to) => {
   else location.hash = '#/';
 };
 
+// Estrela recém-marcada dá um pequeno "pulo" depois que a tela é redesenhada.
+const popStar = (id) => app.querySelectorAll(`.star[data-id="${id}"].on`).forEach((s) => s.classList.add('pop'));
+
 app.addEventListener('click', async (e) => {
   const el = e.target.closest('[data-act]');
   if (!el) return;
@@ -851,7 +959,8 @@ app.addEventListener('click', async (e) => {
     if (!r) return;
     saved(store.put('receita', { ...r, fav: !r.fav }));
     toast(r.fav ? 'Tirada das favoritas' : 'Adicionada às favoritas');
-    render({ keepScroll: true });
+    await render({ keepScroll: true });
+    popStar(r.id);
   } else if (act === 'back') {
     goBack(el.dataset.to);
   } else if (act === 'grind') {
@@ -860,6 +969,8 @@ app.addEventListener('click', async (e) => {
       const on = b.dataset.v === draft.grind;
       b.classList.toggle('on', on); b.setAttribute('aria-checked', on);
     });
+    const lbl = app.querySelector('[data-live="grind"]');
+    if (lbl) lbl.textContent = draft.grind || 'Toque para escolher';
   } else if (act === 'rate') {
     const v = Number(el.dataset.v);
     draft.rating = draft.rating === v ? 0 : v; dirty = true;
@@ -871,7 +982,9 @@ app.addEventListener('click', async (e) => {
   } else if (act === 'draft-fav') {
     draft.fav = !draft.fav; dirty = true;
     el.setAttribute('aria-pressed', draft.fav);
-    const s = el.querySelector('.star'); s.classList.toggle('on', draft.fav); s.textContent = draft.fav ? '★' : '☆';
+    const s = el.querySelector('.star');
+    s.classList.toggle('on', draft.fav);
+    s.classList.toggle('pop', draft.fav);
   } else if (act === 'add-pour') {
     draft.pours.push({ t: '', g: '' }); dirty = true;
     await render({ keepScroll: true });
@@ -943,7 +1056,19 @@ app.addEventListener('click', async (e) => {
   }
 });
 
-window.addEventListener('hashchange', () => render());
+// Transição entre telas: entra pela direita ao avançar, pela esquerda ao voltar, fade entre abas.
+let lastDepth = depthOf(route());
+window.addEventListener('hashchange', () => {
+  const d = depthOf(route());
+  const dir = d > lastDepth ? 'fwd' : d < lastDepth ? 'back' : 'tab';
+  lastDepth = d;
+  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    render();
+    return;
+  }
+  document.documentElement.dataset.nav = dir;
+  document.startViewTransition(() => render());
+});
 
 store.onChange(() => {
   // não atrapalha quem está preenchendo um formulário
