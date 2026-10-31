@@ -30,6 +30,11 @@ let pending = new Set(read(PENDING_KEY, []));
 let client = null;
 let listener = () => {};
 let pulled = false; // já trouxe as receitas da conta nesta abertura?
+let failed = false; // o último envio ou busca deu erro?
+let statusListener = () => {};
+let wired = false;
+const bootAt = Date.now();
+const notifyStatus = () => { try { statusListener(); } catch {} };
 
 const persist = () => write(KEY, items) && write(PENDING_KEY, [...pending]);
 
@@ -62,17 +67,21 @@ function applyRemote(row) {
 }
 
 async function flush() {
-  if (!client || !pending.size || !navigator.onLine) return;
+  if (!client || !pending.size || !navigator.onLine) { notifyStatus(); return; }
   const rows = [...pending].map((id) => items[id]).filter(Boolean);
   const { error } = await client.from(TABLE).upsert(rows);
-  if (error) return;
-  rows.forEach((r) => pending.delete(r.id));
-  persist();
+  failed = Boolean(error);
+  if (!error) {
+    rows.forEach((r) => pending.delete(r.id));
+    persist();
+  }
+  notifyStatus();
 }
 
 async function pull() {
   const { data, error } = await client.from(TABLE).select('*');
-  if (error) return false;
+  if (error) { failed = true; return false; }
+  failed = false;
   let changed = false;
   data.forEach((row) => { changed = applyRemote(row) || changed; });
   persist();
@@ -98,17 +107,33 @@ function personOf(user) {
 }
 
 async function startSync() {
-  await flush();
-  const changed = await pull();
-  const first = !pulled;
-  pulled = true;
-  if (changed || first) listener();
-  await flush();
-  subscribe();
+  try {
+    await flush();
+    const changed = await pull();
+    const first = !pulled;
+    pulled = true;
+    if (changed || first) listener();
+    await flush();
+    subscribe();
+  } catch {
+    failed = true;
+  } finally {
+    pulled = true; // não deixa a tela em "carregando" se a busca falhar
+    notifyStatus();
+  }
 }
 
 export const store = {
   onChange(fn) { listener = fn; },
+  onStatus(fn) { statusListener = fn; },
+
+  // Situação da sincronização para os avisos da interface.
+  status: () => ({
+    cloud: cloudEnabled && Boolean(client),
+    online: navigator.onLine,
+    pending: pending.size,
+    failed,
+  }),
 
   // Devolve 'local', 'login' (precisa entrar) ou 'nuvem'.
   async init() {
@@ -121,11 +146,15 @@ export const store = {
     const { data } = await client.auth.getSession();
     if (!data.session) return 'login';
     write(ME_KEY, personOf(data.session.user));
-    startSync().catch(() => {});
-    window.addEventListener('online', () => startSync().catch(() => {}));
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') startSync().catch(() => {});
-    });
+    startSync();
+    if (!wired) {
+      wired = true;
+      window.addEventListener('online', () => { notifyStatus(); startSync(); });
+      window.addEventListener('offline', notifyStatus);
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') startSync();
+      });
+    }
     return 'nuvem';
   },
 
@@ -180,8 +209,9 @@ export const store = {
 
   pendingCount: () => pending.size,
 
-  // Primeira abertura com a conta online e nada guardado no aparelho ainda: a tela mostra "carregando".
-  loading: () => cloudEnabled && !!client && !pulled && Object.keys(items).length === 0,
+  // Primeira abertura com a conta online e nada guardado no aparelho ainda: a tela mostra "carregando"
+  // (por no máximo 8 s, para não ficar presa se não houver internet).
+  loading: () => cloudEnabled && !pulled && Object.keys(items).length === 0 && Date.now() - bootAt < 8000,
 
   // Nome de quem entrou, tirado do e-mail do login (veja PEOPLE em config.js).
   me: () => read(ME_KEY, null),

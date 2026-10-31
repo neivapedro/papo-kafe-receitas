@@ -10,15 +10,26 @@ toque em **Compartilhar → Adicionar à Tela de Início**. O ícone aparece com
 
 ## Estrutura
 
-- `index.html`: página única do app
-- `css/style.css`: visual (cores da logo Papo Kafé)
-- `js/app.js`: telas e interações
+- `index.html`: página única do app (também carrega as telas de abertura do iPhone)
+- `css/style.css`: visual (cores da logo Papo Kafé, tema claro e escuro, tamanhos em `rem`)
+- `js/app.js`: telas e interações (inclui o modo preparo)
 - `js/store.js`: onde os dados são salvos (no aparelho e, com a conta ligada, no Supabase)
 - `js/config.js`: endereço e chave pública do Supabase, e nomes de quem usa (Pedro e Karoline)
 - `js/vendor/supabase.js`: biblioteca oficial do Supabase (supabase-js 2.117.2), guardada no app
+- `fonts/`: Outfit e Figtree (variáveis, só o alfabeto latino), hospedadas no app
+- `img/`: logo (WebP sem perdas, versões clara e escura) e o grão em vetor
+- `splash/`: telas de abertura do iPhone e do iPad, em claro e escuro
 - `supabase.sql`: cria a tabela compartilhada
-- `sw.js`: funcionamento sem internet
-- `manifest.webmanifest`, `icons/`, `img/`: instalação na tela de início e logo
+- `sw.js`: abre na hora e funciona sem internet (veja abaixo)
+- `manifest.webmanifest`, `icons/`: instalação na tela de início
+
+## Publicar uma mudança
+
+O app abre sempre pela cópia guardada no aparelho e baixa a versão nova em segundo plano.
+Para o celular perceber que existe versão nova, **aumente o número em `sw.js`**
+(`const VERSION = 'v10'` → `'v11'`) em toda publicação. Quando a versão nova termina de baixar,
+aparece o aviso "Nova versão disponível · Atualizar". Sem tocar no aviso, ela entra
+sozinha na próxima vez que o app for fechado e aberto.
 
 ## Ligar o compartilhamento (Pedro e Karoline)
 

@@ -1,6 +1,11 @@
-// Funciona sem internet: com rede, sempre busca a versão mais nova do app;
-// sem rede, usa a cópia guardada no aparelho.
-const CACHE = 'papo-kafe-receitas-v9';
+// Funciona sem internet e abre na hora: o app sempre sai da cópia guardada no aparelho.
+// Quando há uma versão nova, ela é baixada inteira em segundo plano (todos os arquivos ou nenhum)
+// e o app avisa "Nova versão disponível". Ao fechar e abrir de novo, ou ao tocar em Atualizar,
+// a versão nova entra, sem nunca misturar arquivos velhos com novos.
+//
+// IMPORTANTE: ao publicar uma mudança, aumente o número da versão abaixo.
+const VERSION = 'v10';
+const CACHE = `papo-kafe-receitas-${VERSION}`;
 const ASSETS = [
   './',
   './index.html',
@@ -10,16 +15,23 @@ const ASSETS = [
   './js/config.js',
   './js/vendor/supabase.js',
   './manifest.webmanifest',
-  './img/logo.png',
-  './img/logo-escuro.png',
-  './img/grao.png',
+  './fonts/outfit-latin-wght-normal.woff2',
+  './fonts/figtree-latin-wght-normal.woff2',
+  './img/logo.webp',
+  './img/logo-escuro.webp',
+  './img/grao.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
+  // sem skipWaiting: a versão nova espera, para não trocar o app no meio de um formulário
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))));
+});
+
+self.addEventListener('message', (e) => {
+  if (e.data === 'ATUALIZAR') self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
@@ -34,27 +46,15 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  const isFont = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
-  if (url.origin !== location.origin && !isFont) return;
-
-  if (isFont) {
-    // fontes não mudam: usa a cópia guardada
-    e.respondWith(caches.open(CACHE).then(async (cache) => {
-      const cached = await cache.match(req);
-      return cached || fetch(req).then((res) => { cache.put(req, res.clone()); return res; });
-    }));
-    return;
-  }
+  if (url.origin !== location.origin) return; // Supabase e outros: direto da rede
 
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
-      try {
-        const res = await fetch(req, { cache: 'no-cache' });
-        if (res.ok) cache.put(req, res.clone());
-        return res;
-      } catch {
-        return (await cache.match(req, { ignoreSearch: true })) || Response.error();
-      }
+      const hit = await cache.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res.ok) cache.put(req, res.clone());
+      return res;
     }),
   );
 });

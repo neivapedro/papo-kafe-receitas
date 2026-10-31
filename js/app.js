@@ -101,15 +101,13 @@ const ICON = {
   again: '<path d="M4 12a8 8 0 0 1 14-5.3L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5.3L4 15"/><path d="M4 20v-5h5"/>',
   thumb: '<path d="M7 11v9H4v-9z"/><path d="M7 11l4-7a2 2 0 0 1 2 2v4h5.5a2 2 0 0 1 2 2.3l-1.2 6A2 2 0 0 1 17.3 20H7"/>',
   x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  play: '<path d="M8 5.5v13l10.5-6.5z"/>',
 };
 const svg = (k, cls = 'ic') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`;
 const grains = (n, cls = '') => Array.from({ length: 5 }, (_, i) =>
   `<i class="grain ${cls} ${i < n ? '' : 'off'}"></i>`).join('');
-const logo = (cls) => `
-  <picture>
-    <source srcset="img/logo-escuro.png" media="(prefers-color-scheme: dark)">
-    <img class="${cls}" src="img/logo.png" alt="Papo Kafé" width="900" height="378">
-  </picture>`;
+// As duas versões ficam no HTML; o CSS mostra a certa para o tema (automático ou escolhido).
+const logo = (cls) => `<img class="${cls} logo-light" src="img/logo.webp" alt="Papo Kafé" width="900" height="378"><img class="${cls} logo-dark" src="img/logo-escuro.webp" alt="" width="900" height="378" aria-hidden="true">`;
 
 /* ---------- utilidades ---------- */
 
@@ -202,7 +200,7 @@ function bar(title, { back, icon, action, root } = {}) {
   return `
     <header class="bar ${root ? 'root' : ''}">
       <div class="bar-side">${back ? `<button class="iconbtn back" data-act="back" data-to="${esc(back)}" aria-label="Voltar">${svg('chev')}</button>` : ''}</div>
-      <h1 class="bar-title">${icon ? svg(icon) : ''}<span>${esc(title)}</span></h1>
+      <${root ? 'div aria-hidden="true"' : 'h1'} class="bar-title">${icon ? svg(icon) : ''}<span>${esc(title)}</span></${root ? 'div' : 'h1'}>
       <div class="bar-side end">${action || ''}</div>
     </header>
     ${root ? `<h1 class="large-title">${esc(title)}</h1>` : ''}`;
@@ -262,7 +260,8 @@ function renderHome() {
   const loading = store.loading();
   return `
     <section class="home">
-      <a class="iconbtn avatar" href="#/ajustes" aria-label="Ajustes">${me ? byBubble(me, true) : svg('gear')}</a>
+      <h1 class="sr-only">Métodos de preparo</h1>
+      <a class="iconbtn avatar" id="avatar" href="#/ajustes" aria-label="Ajustes">${me ? byBubble(me, true) : svg('gear')}<i class="sync" aria-hidden="true"></i></a>
       <div class="hero">${logo('hero-logo')}<small>Receitas</small></div>
       <div class="methods">
         ${METHODS.map((m) => {
@@ -334,6 +333,7 @@ function renderRecipe(r) {
       ${pours ? `<h3 class="sec">Despejos</h3><div class="vsteps">${pours}</div>` : ''}
       ${steps ? `<h3 class="sec">Passo a passo</h3><div class="vsteps">${steps}</div>` : ''}
       ${r.obs ? `<div class="note"><b>Observação</b>${esc(r.obs)}</div>` : ''}
+      <a class="btn primary block" href="#/r/${r.id}/preparar">${svg('play')}Preparar</a>
       <div class="actions">
         <a class="btn secondary" href="#/r/${r.id}/duplicar">${svg('copy')}Duplicar</a>
         ${inBest ? `<a class="btn secondary" href="#/c/${inBest.id}">${svg('bag')}Ver em Cafés</a>` : `<a class="btn secondary" href="#/cafes/novo/${r.id}">${svg('plus')}Cafés</a>`}
@@ -758,14 +758,53 @@ function renderLogin() {
     </section>`;
 }
 
+const THEME_KEY = 'papo-kafe-receitas:tema';
+const getTheme = () => { try { const t = localStorage.getItem(THEME_KEY); return t === 'claro' || t === 'escuro' ? t : 'auto'; } catch { return 'auto'; } };
+function setTheme(v) {
+  try { if (v === 'auto') localStorage.removeItem(THEME_KEY); else localStorage.setItem(THEME_KEY, v); } catch {}
+  const root = document.documentElement;
+  if (v === 'auto') delete root.dataset.theme; else root.dataset.theme = v === 'escuro' ? 'dark' : 'light';
+  const [light, dark] = document.querySelectorAll('meta[name="theme-color"]');
+  if (!light || !dark) return;
+  if (v === 'auto') {
+    light.content = '#f7efe4'; light.media = '(prefers-color-scheme: light)';
+    dark.content = '#17110c'; dark.media = '(prefers-color-scheme: dark)';
+  } else {
+    const c = v === 'escuro' ? '#17110c' : '#f7efe4';
+    [light, dark].forEach((m) => { m.content = c; m.removeAttribute('media'); });
+  }
+}
+
+const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
+
+// Situação da sincronização, para a bolinha do perfil, a faixa "sem internet" e os Ajustes.
+function syncState() {
+  const st = store.status();
+  if (!st.cloud) return { key: 'ok', dot: 'off', ...(cloudEnabled
+    ? { t: 'Sem conexão com a conta', s: 'A sincronização volta sozinha quando houver internet.' }
+    : { t: 'Só neste celular', s: 'As receitas ficam salvas apenas neste aparelho.' }) };
+  if (!st.online) return { key: 'off', dot: 'off', t: 'Sem internet', s: st.pending ? `${plural(st.pending, 'alteração aguarda', 'alterações aguardam')} a conexão.` : 'Você pode continuar usando; o app envia depois.' };
+  if (st.failed) return { key: 'err', dot: 'err', t: 'Não foi possível sincronizar', s: 'Vamos tentar de novo sozinhos. Suas alterações estão salvas neste celular.' };
+  if (st.pending) return { key: 'wait', dot: 'wait', t: 'Sincronizando…', s: `${plural(st.pending, 'alteração', 'alterações')} para enviar.` };
+  return { key: 'ok', dot: 'ok', t: 'Tudo sincronizado', s: 'As receitas são as mesmas nos celulares do Pedro e da Karoline.' };
+}
+
+function updateSyncUI() {
+  const st = syncState();
+  document.body.dataset.sync = st.key;
+  const net = document.getElementById('netbar');
+  const s = store.status();
+  const offline = s.cloud && !s.online;
+  net.hidden = !offline;
+  net.textContent = offline ? (s.pending ? `Sem internet · ${plural(s.pending, 'alteração será enviada', 'alterações serão enviadas')} quando voltar` : 'Sem internet · você pode continuar, o app envia depois') : '';
+  const av = document.getElementById('avatar');
+  if (av) av.setAttribute('aria-label', st.key === 'ok' ? 'Ajustes' : `Ajustes · ${st.t.toLowerCase()}`);
+}
+
 async function renderSettings() {
   const email = mode === 'nuvem' ? await store.userEmail() : null;
-  const pend = store.pendingCount();
-  const online = navigator.onLine;
-  const sync = mode !== 'nuvem'
-    ? { dot: 'off', t: cloudEnabled ? 'Sem conexão' : 'Só neste celular', s: cloudEnabled ? 'A sincronização volta sozinha quando houver internet.' : 'As receitas ficam salvas apenas neste aparelho.' }
-    : pend ? { dot: 'wait', t: online ? 'Sincronizando…' : 'Aguardando internet', s: `${pend} ${pend === 1 ? 'alteração' : 'alterações'} para enviar.` }
-      : { dot: 'ok', t: 'Tudo sincronizado', s: 'As receitas são as mesmas nos celulares do Pedro e da Karoline.' };
+  const sync = syncState();
+  const tema = getTheme();
   return `
     ${bar('Ajustes', { back: '#/' })}
     <section class="content">
@@ -775,6 +814,12 @@ async function renderSettings() {
           <div class="cell">${byBubble(store.me(), true)}<div><b>${esc(store.me() || '')}</b><small>${esc(email || '')}</small></div></div>` : `
           <div class="cell"><span class="cell-ic">${svg('gear')}</span><div><b>Conta online não configurada</b><small>Para o Pedro e a Karoline verem as mesmas receitas, a conta online precisa estar ligada.</small></div></div>`}
       </div>
+      <h2 class="group-title">Aparência</h2>
+      <div class="group pad">
+        <div class="segctl" role="radiogroup" aria-label="Aparência">
+          ${[['auto', 'Automático'], ['claro', 'Claro'], ['escuro', 'Escuro']].map(([v, l]) => `<button type="button" role="radio" aria-checked="${tema === v}" class="${tema === v ? 'on' : ''}" data-act="tema" data-v="${v}">${l}</button>`).join('')}
+        </div>
+      </div>
       <h2 class="group-title">Sincronização</h2>
       <div class="group">
         <div class="cell"><i class="dot ${sync.dot}" aria-hidden="true"></i><div><b>${sync.t}</b><small>${sync.s}</small></div></div>
@@ -782,6 +827,107 @@ async function renderSettings() {
       ${mode === 'nuvem' ? '<div class="group"><button class="cell danger" data-act="logout">Sair da conta</button></div>' : ''}
     </section>`;
 }
+
+/* ---------- modo preparo: cronômetro, passo atual em destaque e tela sempre acesa ---------- */
+
+const cook = { id: null, rows: [], base: 0, startedAt: 0, running: false, timer: null, lock: null };
+
+// "0:40" -> 40 · "1:10" -> 70 · "6–9 s" -> 6 · "antes" -> null (passo sem hora marcada)
+function toSec(t) {
+  const x = String(t || '').trim();
+  let m = x.match(/^~?(\d+):(\d{2})/);
+  if (m) return Number(m[1]) * 60 + Number(m[2]);
+  m = x.match(/^~?(\d+)\s*(?:[–-]\s*\d+\s*)?s\b/i);
+  return m ? Number(m[1]) : null;
+}
+const clock = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
+
+function cookRows(r) {
+  let prev = 0;
+  if (r.pours?.length) {
+    return r.pours.filter((p) => p.t || p.g).map((p) => {
+      const g = num(p.g);
+      const d = g != null ? g - prev : null;
+      if (g != null) prev = g;
+      return { sec: toSec(p.t), t: p.t, g: p.g, d, x: '' };
+    });
+  }
+  return (r.steps || []).filter((s) => s.t || s.x).map((s) => ({ sec: toSec(s.t), t: s.t, x: s.x, g: '', d: null }));
+}
+
+const cookElapsed = () => (cook.base + (cook.running ? performance.now() - cook.startedAt : 0)) / 1000;
+
+function stopCook() {
+  clearInterval(cook.timer);
+  Object.assign(cook, { id: null, rows: [], base: 0, running: false, timer: null });
+  const lock = cook.lock;
+  cook.lock = null;
+  lock?.release?.().catch(() => {});
+}
+
+async function cookLock() {
+  try {
+    if (navigator.wakeLock && !cook.lock) {
+      cook.lock = await navigator.wakeLock.request('screen');
+      cook.lock.addEventListener('release', () => { cook.lock = null; });
+    }
+  } catch { /* o aparelho não permitiu: segue sem */ }
+  const n = app.querySelector('[data-live="cnote"]');
+  if (n) n.textContent = cook.lock ? 'A tela fica acesa durante o preparo.' : 'Neste aparelho a tela pode apagar sozinha. Se acontecer, aumente o bloqueio automático nos Ajustes do iPhone.';
+}
+
+function cookPaint() {
+  const timeEl = app.querySelector('[data-live="ctime"]');
+  if (!timeEl) { stopCook(); return; }
+  const el = cookElapsed();
+  const started = cook.running || cook.base > 0;
+  timeEl.textContent = clock(el);
+  let now = -1;
+  cook.rows.forEach((row, i) => { if (started && row.sec != null && row.sec <= el) now = i; });
+  app.querySelectorAll('.cook-step').forEach((node, i) => {
+    const row = cook.rows[i];
+    node.classList.toggle('now', i === now);
+    node.classList.toggle('done', started && (row.sec == null || i < now));
+  });
+  const next = cook.rows.find((row) => row.sec != null && row.sec > el);
+  const label = next ? (next.g ? `${next.g} g` : String(next.x || '').trim().slice(0, 38)) : '';
+  app.querySelector('[data-live="cnext"]').textContent = !started ? 'Toque em Iniciar quando começar'
+    : next ? `Próximo: ${label} em ${clock(next.sec - el)}` : 'Último passo em andamento';
+}
+
+function renderCook(r, m) {
+  if (cook.id !== r.id) { stopCook(); cook.id = r.id; cook.rows = cookRows(r); }
+  const facts = [['Café', r.dose && `${r.dose} g`], [m.waterLabel || 'Água', r.water && `${r.water} g`], ['Temp.', r.temp && `${r.temp} °C`], ['Proporção', ratio(r)]].filter(([, v]) => v);
+  const sub = [r.variety, r.grind && `moagem ${r.grind}${r.clicks ? ` · ${r.clicks} cliques` : ''}`, timeRange(r) && `meta ${timeRange(r)}`].filter(Boolean).map(esc).join(' · ');
+  const label = cook.running ? 'Pausar' : cook.base > 0 ? 'Continuar' : 'Iniciar';
+  return `
+    ${bar('Preparo', { back: `#/r/${r.id}`, icon: m.id })}
+    <section class="cook">
+      <div class="cook-head"><h2>${esc(r.coffee)}</h2>${sub ? `<p>${sub}</p>` : ''}</div>
+      <div class="cook-facts">${facts.map(([k, v]) => `<div><small>${k}</small><b>${esc(v)}</b></div>`).join('')}</div>
+      <div class="cook-timer">
+        <div class="cook-time" data-live="ctime" role="timer" aria-label="Tempo de preparo">0:00</div>
+        <p class="cook-next" data-live="cnext"></p>
+      </div>
+      <div class="cook-ctrl">
+        <button type="button" class="btn primary" data-act="cook-toggle">${label}</button>
+        <button type="button" class="btn secondary" data-act="cook-reset">Zerar</button>
+      </div>
+      <div class="cook-steps">
+        ${cook.rows.map((row) => `
+          <div class="cook-step">
+            <span class="t">${esc(row.t)}</span>
+            ${row.g ? `<span class="x">Despeje ${row.d != null ? `<span class="d">+${fmtNum(row.d)}</span>` : ''}</span><span class="g">${esc(row.g)} g</span>`
+    : `<span class="x">${esc(row.x)}</span><span></span>`}
+          </div>`).join('')}
+      </div>
+      <p class="cook-note" data-live="cnote"></p>
+    </section>`;
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && cook.id) cookLock(); // o iOS solta a tela acesa ao ir para o fundo
+});
 
 /* ---------- rotas ---------- */
 
@@ -802,7 +948,48 @@ function depthOf(p) {
   return 1; // ajustes, cafés/novo, c/:id
 }
 
-async function render({ keepScroll = false } = {}) {
+function titleOf(p) {
+  if (mode === 'login') return 'Entrar · Receitas';
+  if (!p.length) return 'Receitas · Papo Kafé';
+  const m = p[0] === 'm' ? methodOf(p[1]) : null;
+  if (m) return p[2] ? `Nova receita de ${m.name} · Receitas` : `${m.name} · Receitas`;
+  const r = p[0] === 'r' ? store.get(p[1]) : null;
+  if (r) {
+    const pre = { editar: 'Editar', duplicar: 'Cópia de', preparar: 'Preparo:' }[p[2]];
+    return `${pre ? `${pre} ` : ''}${r.coffee} · Receitas`;
+  }
+  const c = p[0] === 'c' ? coffeeOf(p[1]) : null;
+  if (c) return `${c.coffee} · Cafés`;
+  return ({ favoritas: 'Favoritas', cafes: p[1] === 'novo' ? 'Novo café' : 'Cafés', ajustes: 'Ajustes' }[p[0]] || 'Receitas') + ' · Receitas';
+}
+
+// Atributos que identificam um controle depois que a tela é redesenhada (para devolver o foco).
+const FOCUS_ATTRS = ['data-act', 'data-v', 'data-id', 'data-m', 'data-i', 'data-f', 'data-b', 'data-pour', 'data-k', 'data-step'];
+function focusSelector(el) {
+  if (!el || el === document.body || !app.contains(el)) return null;
+  const parts = FOCUS_ATTRS.filter((a) => el.hasAttribute(a)).map((a) => `[${a}="${CSS.escape(el.getAttribute(a))}"]`);
+  if (parts.length) return `${el.tagName.toLowerCase()}${parts.join('')}`;
+  if (el.tagName === 'A' && el.getAttribute('href')) return `a[href="${CSS.escape(el.getAttribute('href'))}"]`;
+  return null;
+}
+
+// Só o item marcado de um grupo de opções entra na ordem do Tab; as setas trocam de opção.
+function enhanceRadios() {
+  app.querySelectorAll('[role="radiogroup"]').forEach((g) => {
+    const radios = [...g.querySelectorAll('[role="radio"]')];
+    const on = radios.find((r) => r.getAttribute('aria-checked') === 'true') || radios[0];
+    radios.forEach((r) => { r.tabIndex = r === on ? 0 : -1; });
+  });
+}
+
+function focusHeading() {
+  const h = app.querySelector('.large-title, h1.bar-title, .center h1, h1.sr-only');
+  if (!h) return;
+  h.tabIndex = -1;
+  h.focus({ preventScroll: true });
+}
+
+async function render({ keepScroll = false, nav = false } = {}) {
   const y = window.scrollY;
   const p = route();
   const key = p.join('/');
@@ -833,6 +1020,8 @@ async function render({ keepScroll = false } = {}) {
         draftKey = key; dirty = true;
       }
       html = renderForm(m, `Cópia · ${m.name}`);
+    } else if (p[2] === 'preparar') {
+      html = renderCook(r, m);
     } else {
       html = renderRecipe(r);
     }
@@ -864,13 +1053,23 @@ async function render({ keepScroll = false } = {}) {
   }
 
   if (!isFormRoute(p)) { draft = null; draftKey = null; bestDraft = null; bestKey = null; dirty = false; }
+  const refocus = !nav ? focusSelector(document.activeElement) : null;
+  const cooking = mode !== 'login' && p[0] === 'r' && p[2] === 'preparar' && !!store.get(p[1]);
+  if (!cooking && cook.id) stopCook();
   app.innerHTML = html;
+  document.title = titleOf(p);
   app.classList.toggle('wide', mode !== 'login' && (!p.length || (p[0] === 'cafes' && !p[1])));
+  app.classList.toggle('cooking', cooking);
   renderTabs(tab);
   document.body.classList.toggle('has-tabs', !!tab);
   document.body.classList.toggle('has-savebar', !!app.querySelector('.savebar'));
   window.scrollTo(0, keepScroll ? y : 0);
   onScroll();
+  enhanceRadios();
+  updateSyncUI();
+  if (cooking) { cookPaint(); cookLock(); }
+  if (nav) focusHeading();
+  else if (refocus) app.querySelector(refocus)?.focus({ preventScroll: true });
 }
 
 /* ---------- barra que ganha linha ao rolar ---------- */
@@ -892,6 +1091,18 @@ app.addEventListener('input', (e) => {
     bestDraft[t.dataset.b] = t.type === 'checkbox' ? t.checked : t.value;
     dirty = true;
   }
+});
+
+// Setas trocam de opção nos grupos (moagem, nota, estoque, aparência, pódio…).
+app.addEventListener('keydown', (e) => {
+  const radio = e.target.closest?.('[role="radio"]');
+  const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[e.key];
+  if (!radio || !step) return;
+  const radios = [...radio.closest('[role="radiogroup"]').querySelectorAll('[role="radio"]')];
+  const next = radios[(radios.indexOf(radio) + step + radios.length) % radios.length];
+  e.preventDefault();
+  next.focus();
+  next.click();
 });
 
 // "Usar um café cadastrado" na receita: preenche nome, pontos, variedade e notas.
@@ -931,7 +1142,7 @@ app.addEventListener('submit', async (e) => {
     return;
   }
   mode = await store.init();
-  render();
+  render({ nav: true });
 });
 
 const goBack = async (to) => {
@@ -971,6 +1182,7 @@ app.addEventListener('click', async (e) => {
     });
     const lbl = app.querySelector('[data-live="grind"]');
     if (lbl) lbl.textContent = draft.grind || 'Toque para escolher';
+    enhanceRadios();
   } else if (act === 'rate') {
     const v = Number(el.dataset.v);
     draft.rating = draft.rating === v ? 0 : v; dirty = true;
@@ -979,6 +1191,7 @@ app.addEventListener('click', async (e) => {
       b.querySelector('.grain').classList.toggle('off', n > draft.rating);
       b.setAttribute('aria-checked', n === draft.rating);
     });
+    enhanceRadios();
   } else if (act === 'draft-fav') {
     draft.fav = !draft.fav; dirty = true;
     el.setAttribute('aria-pressed', draft.fav);
@@ -1049,6 +1262,29 @@ app.addEventListener('click', async (e) => {
     dirty = false;
     toast('Café excluído');
     location.replace('#/cafes');
+  } else if (act === 'tema') {
+    setTheme(el.dataset.v);
+    render({ keepScroll: true });
+  } else if (act === 'cook-toggle') {
+    if (cook.running) {
+      cook.base += performance.now() - cook.startedAt;
+      cook.running = false;
+      clearInterval(cook.timer);
+    } else {
+      cook.startedAt = performance.now();
+      cook.running = true;
+      clearInterval(cook.timer);
+      cook.timer = setInterval(cookPaint, 100);
+      cookLock();
+    }
+    el.textContent = cook.running ? 'Pausar' : 'Continuar';
+    cookPaint();
+  } else if (act === 'cook-reset') {
+    clearInterval(cook.timer);
+    Object.assign(cook, { base: 0, running: false, timer: null });
+    const t = app.querySelector('[data-act="cook-toggle"]');
+    if (t) t.textContent = 'Iniciar';
+    cookPaint();
   } else if (act === 'logout') {
     await store.signOut();
     mode = 'login';
@@ -1057,18 +1293,34 @@ app.addEventListener('click', async (e) => {
 });
 
 // Transição entre telas: entra pela direita ao avançar, pela esquerda ao voltar, fade entre abas.
+// O nome do café "viaja" da lista para a receita (e volta).
 let lastDepth = depthOf(route());
+const recipeIdOf = (p) => (p[0] === 'r' && p[1] && !p[2] ? p[1] : null);
+let lastRecipe = recipeIdOf(route());
 window.addEventListener('hashchange', () => {
-  const d = depthOf(route());
+  const p = route();
+  const d = depthOf(p);
   const dir = d > lastDepth ? 'fwd' : d < lastDepth ? 'back' : 'tab';
   lastDepth = d;
+  const prevRecipe = lastRecipe;
+  lastRecipe = recipeIdOf(p);
   if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    render();
+    render({ nav: true });
     return;
   }
+  const mark = (id) => app.querySelector(`.card[data-id="${CSS.escape(id)}"] .card-name`)?.classList.add('vt-coffee');
+  if (dir === 'fwd' && lastRecipe) mark(lastRecipe);
   document.documentElement.dataset.nav = dir;
-  document.startViewTransition(() => render());
+  const vt = document.startViewTransition(async () => {
+    await render({ nav: true });
+    if (dir === 'back' && prevRecipe) mark(prevRecipe);
+  });
+  vt.finished.finally(() => app.querySelectorAll('.vt-coffee').forEach((n) => n.classList.remove('vt-coffee')));
 });
+
+store.onStatus(updateSyncUI);
+window.addEventListener('online', updateSyncUI);
+window.addEventListener('offline', updateSyncUI);
 
 store.onChange(() => {
   // não atrapalha quem está preenchendo um formulário
@@ -1082,14 +1334,28 @@ store.onChange(() => {
 })();
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  // Quando uma versão nova do app é instalada, recarrega uma vez para já usá-la.
-  const hadController = !!navigator.serviceWorker.controller;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (hadController && !isFormRoute(route())) location.reload();
-  });
-  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
-    .then((reg) => document.addEventListener('visibilitychange', () => {
+  // A versão nova é baixada em segundo plano e fica esperando. O app avisa; ao tocar em
+  // Atualizar (ou ao fechar e abrir de novo) ela entra, sem misturar arquivos velhos e novos.
+  let updating = false;
+  const updbar = document.getElementById('updbar');
+  const showUpdate = (reg) => {
+    updbar.hidden = false;
+    document.body.classList.add('has-upd');
+    document.getElementById('updbtn').onclick = () => {
+      if (dirty) { toast('Salve o que está preenchendo antes de atualizar.'); return; }
+      updating = true;
+      reg.waiting?.postMessage('ATUALIZAR');
+    };
+  };
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (updating) location.reload(); });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    const watch = (w) => w?.addEventListener('statechange', () => {
+      if (w.state === 'installed' && navigator.serviceWorker.controller) showUpdate(reg);
+    });
+    if (reg.waiting && navigator.serviceWorker.controller) showUpdate(reg);
+    reg.addEventListener('updatefound', () => watch(reg.installing));
+    document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') reg.update().catch(() => {});
-    }))
-    .catch(() => {});
+    });
+  }).catch(() => {});
 }
